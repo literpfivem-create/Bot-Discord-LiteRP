@@ -177,7 +177,7 @@ Se in cima compare **"✅ Tutto configurato!"**, la parte Discord è finita.
 ```
  Server FiveM                                   Bot Discord
 ┌──────────────────────┐   ogni 30 secondi    ┌─────────────────────┐
-│ risorsa literp_discord│ ──── player, staff ─▶│  porta 3000 (API)   │──▶ #stato-server, contatori
+│ risorsa literp_discord│ ──── player, staff ─▶│  porta 3001 (API)   │──▶ #stato-server, contatori
 │  + eventi di txAdmin  │ ──── ban, kick… ────▶│  protetta da chiave │──▶ #ban-fivem, #log-fivem
 └──────────────────────┘                       └─────────────────────┘
 ```
@@ -202,7 +202,7 @@ API_SECRET=la_chiave_che_hai_generato
 Riavvia il bot (`avvia.bat`). Nella finestra del bot deve comparire:
 
 ```
-🌐 API FiveM in ascolto sulla porta 3000
+🌐 API FiveM in ascolto sulla porta 3001
 ```
 
 Se invece compare `⚠️ API_SECRET non impostata`, la chiave non è stata salvata bene.
@@ -213,17 +213,17 @@ Scegli il tuo caso:
 
 | Dove gira il bot | Cosa fare | `BotUrl` (passo 4) |
 |---|---|---|
-| **Sulla stessa macchina/VPS del server FiveM** *(consigliato)* | Niente | `http://127.0.0.1:3000` |
-| **Su una VPS diversa** | Apri la porta 3000 nel firewall della VPS del bot | `http://IP_VPS_BOT:3000` |
-| **Sul tuo PC di casa** | Apri la porta 3000 nel firewall di Windows **e** inoltrala dal router al PC (port forwarding). Il PC deve restare acceso | `http://TUO_IP_PUBBLICO:3000` |
+| **Sulla stessa macchina/VPS del server FiveM** *(consigliato)* | Niente | `http://127.0.0.1:3001` |
+| **Su una VPS diversa** | Apri la porta 3001 nel firewall della VPS del bot | `http://IP_VPS_BOT:3001` |
+| **Sul tuo PC di casa** | Apri la porta 3001 nel firewall di Windows **e** inoltrala dal router al PC (port forwarding). Il PC deve restare acceso | `http://TUO_IP_PUBBLICO:3001` |
 
 Per aprire la porta nel firewall di Windows (PowerShell **come amministratore**):
 
 ```powershell
-New-NetFirewallRule -DisplayName "LiteRP Bot API" -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow
+New-NetFirewallRule -DisplayName "LiteRP Bot API" -Direction Inbound -Protocol TCP -LocalPort 3001 -Action Allow
 ```
 
-**Prova:** da un browser su un altro computer apri `http://IP_DEL_BOT:3000/api/health`. Deve comparire `{"ok":true}`.
+**Prova:** da un browser su un altro computer apri `http://IP_DEL_BOT:3001/api/health`. Deve comparire `{"ok":true}`.
 Se la pagina non si carica, la porta è chiusa (firewall o router).
 
 > Se il server FiveM è su un hosting "solo game server" (dove non puoi installare programmi), il bot non può girare lì. Usa una VPS oppure il tuo PC con il port forwarding.
@@ -244,7 +244,7 @@ ensure literp_discord
 ### Passo 4 — Configura la risorsa (`literp_discord/config.lua`)
 
 ```lua
-Config.BotUrl = 'http://127.0.0.1:3000'   -- vedi la tabella del passo 2
+Config.BotUrl = 'http://127.0.0.1:3001'   -- vedi la tabella del passo 2
 Config.Framework = 'esx'                   -- 'esx', 'qbcore' oppure 'ace'
 Config.StaffGroups = { 'helper', 'mod', 'admin', 'superadmin', 'god' }   -- i gruppi staff del tuo server
 ```
@@ -307,7 +307,7 @@ exports['literp_discord']:NotifyBan({
 | Problema | Causa e soluzione |
 |---|---|
 | Console FiveM: `Errore 401 inviando ... al bot` | La chiave nel `server.cfg` è diversa da quella del `.env`. Correggila e riavvia sia il bot sia la risorsa |
-| Console FiveM: `Errore 0 inviando ... al bot` | Il server FiveM non raggiunge il bot: bot spento, `BotUrl` sbagliato o porta 3000 chiusa (passo 2) |
+| Console FiveM: `Errore 0 inviando ... al bot` | Il server FiveM non raggiunge il bot: bot spento, `BotUrl` sbagliato o porta 3001 chiusa (passo 2) |
 | Console FiveM: `ATTENZIONE: imposta "set literp_discord_secret"` | Manca la riga `set literp_discord_secret` nel `server.cfg`, oppure è **sotto** `ensure literp_discord` (deve stare sopra) |
 | `/stato` mostra i player ma "Staff online: N/D" | La risorsa non è collegata: ricontrolla i passi 1-5 |
 | Lo staff online risulta 0 anche se ci sono staff | `Config.Framework` o `Config.StaffGroups` non corrispondono ai gruppi del tuo server |

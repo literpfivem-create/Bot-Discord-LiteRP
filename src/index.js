@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { Client, Collection, Events, GatewayIntentBits, Partials } = require('discord.js');
 const db = require('./utils/db');
+const api = require('./api/server');
 const { handleInteraction } = require('./handlers/interactions');
 const tickets = require('./handlers/tickets');
 const welcome = require('./handlers/welcome');
@@ -11,6 +12,7 @@ const logs = require('./handlers/logs');
 const fivem = require('./handlers/fivem');
 const scheduler = require('./handlers/scheduler');
 const serverStats = require('./handlers/serverStats');
+const site = require('./handlers/site');
 
 if (!process.env.DISCORD_TOKEN) {
   console.error('❌ DISCORD_TOKEN mancante. Copia .env.example in .env e inserisci il token del bot.');
@@ -25,6 +27,10 @@ const client = new Client({
     GatewayIntentBits.MessageContent, // privilegiato: automod, log messaggi
     GatewayIntentBits.GuildModeration, // log ban Discord
     GatewayIntentBits.GuildVoiceStates, // log vocali
+    GatewayIntentBits.GuildScheduledEvents, // eventi per il sito
+    GatewayIntentBits.GuildInvites, // conteggio inviti
+    // privilegiato: chi è online (sito). Va attivato anche nel Developer Portal, altrimenti il bot non si collega
+    ...(process.env.PRESENCE_INTENT === 'true' ? [GatewayIntentBits.GuildPresences] : []),
   ],
   // Permette di ricevere eventi anche per messaggi/membri non in memoria (es. messaggi eliminati vecchi)
   partials: [Partials.Message, Partials.Channel, Partials.GuildMember],
@@ -51,6 +57,8 @@ client.once(Events.ClientReady, async () => {
     await registerCommands(guild).catch((e) => console.error(`❌ Registrazione comandi fallita su "${guild.name}":`, e.message));
   }
   fivem.start(client);
+  site.start(client);
+  api.start();
   scheduler.start(client);
   serverStats.start(client).catch((e) => console.error('[Stats]', e));
   tickets.startInactivityChecker(client);
@@ -95,4 +103,15 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
   });
 }
 
-client.login(process.env.DISCORD_TOKEN);
+const INTENTS_HELP = '❌ Discord ha rifiutato gli intent: attiva PRESENCE INTENT (e gli altri intent privilegiati) nel Developer Portal → Bot, oppure togli PRESENCE_INTENT=true dal file .env.';
+// 4014 = intent privilegiato non attivo nel Developer Portal
+client.on(Events.ShardDisconnect, (event) => {
+  if (event.code !== 4014) return;
+  console.error(INTENTS_HELP);
+  process.exit(1);
+});
+
+client.login(process.env.DISCORD_TOKEN).catch((err) => {
+  console.error(/disallowed intents/i.test(err.message) ? INTENTS_HELP : `❌ Accesso a Discord fallito: ${err.message}`);
+  process.exit(1);
+});

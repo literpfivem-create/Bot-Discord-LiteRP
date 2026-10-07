@@ -1,8 +1,9 @@
 Config = {}
 
 -- Indirizzo del bot Discord (IP della macchina dove gira il bot + API_PORT del file .env)
+-- Con il bot su Railway: l'indirizzo pubblico del bot, es. 'https://literp-bot.up.railway.app'
 -- Se bot e server FiveM sono sulla stessa macchina lascia 127.0.0.1
-Config.BotUrl = 'http://127.0.0.1:3000'
+Config.BotUrl = 'http://127.0.0.1:3001'
 
 -- La chiave segreta NON va scritta qui: mettila nel server.cfg
 --   set literp_discord_secret "la_stessa_chiave_di_API_SECRET"

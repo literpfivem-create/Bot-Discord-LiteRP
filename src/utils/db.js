@@ -1,9 +1,10 @@
 // Database su file JSON (data/database.json). Nessuna dipendenza nativa da compilare.
 // I campi nuovi vengono aggiunti automaticamente alle configurazioni esistenti (fillDefaults).
+// DATA_DIR nel .env sposta la cartella dati (su Railway: il percorso del Volume, es. /data).
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, '..', '..', 'data');
 const FILE = path.join(DATA_DIR, 'database.json');
 
 const DEFAULT_WELCOME =
@@ -148,6 +149,7 @@ try {
 state.guilds ??= {};
 state.tickets ??= {};
 state.warns ??= {};
+state.site ??= { guildId: null }; // server Discord mostrato sul sito (/sito collega)
 
 let timer = null;
 
@@ -230,6 +232,12 @@ function findTickets(filter) {
   return Object.values(state.tickets).filter(filter);
 }
 
+// ---- Sito ----
+/** Impostazioni del collegamento con il sito. Live: modificale e chiama save(). */
+function getSite() {
+  return state.site;
+}
+
 // ---- Avvisi (warn) ----
 /** Mappa userId -> [warn] del server. Live: modificala e chiama save(). */
 function getWarns(guildId) {
@@ -237,7 +245,9 @@ function getWarns(guildId) {
 }
 
 module.exports = {
+  DATA_DIR,
   getGuild, peekGuild, save, saveNow,
+  getSite,
   getTicket, setTicket, deleteTicket, findTickets,
   getWarns,
 };

@@ -39,7 +39,7 @@ Apri `.env` e compila:
 
 ```env
 DISCORD_TOKEN=il_token_del_bot
-API_PORT=3000
+API_PORT=3001
 API_SECRET=una_stringa_lunga_e_casuale
 ```
 
@@ -127,7 +127,7 @@ Senza la risorsa il bot mostra comunque i **player online** leggendo `IP:porta/d
    # ...e chi fa parte del gruppo, tramite ID Discord
    add_principal identifier.discord:123456789012345678 group.admin
    ```
-3. In `config.lua` imposta `Config.BotUrl` (es. `http://IP_DEL_BOT:3000`), la modalità staff (`ace`, `esx` o `qbcore`) e quali eventi txAdmin inviare.
+3. In `config.lua` imposta `Config.BotUrl` (es. `http://IP_DEL_BOT:3001`), la modalità staff (`ace`, `esx` o `qbcore`) e quali eventi txAdmin inviare.
 4. Se bot e server FiveM sono su macchine diverse, apri la porta `API_PORT` nel firewall della macchina del bot.
 5. Prova dalla console live di txAdmin: `literp_testban` → deve comparire un ban di test nel canale ban.
 
@@ -154,6 +154,27 @@ exports['literp_discord']:NotifyBan({
     banId = 'BAN-1234',
 })
 ```
+
+## 4bis. Collegamento con il sito e Railway
+
+Il sito LiteRP (su Vercel) legge i dati dal bot tramite l'API (rotte `/site/*`), e il bot avvisa il sito quando un contenuto cambia, così la pagina si aggiorna subito.
+
+Variabili da impostare (file `.env` in locale, scheda **Variables** su Railway):
+
+| Variabile | A cosa serve |
+|---|---|
+| `SITE_API_SECRET` | Chiave con cui il sito legge dal bot. Sul sito va messa uguale in `BOT_API_SECRET`. |
+| `SITE_URL` | Indirizzo del sito senza `/` finale. Solo se il bot può raggiungere il sito: con il bot su Railway serve l'indirizzo pubblico (Vercel), `localhost` non funziona. Vuoto = il sito si aggiorna da solo ogni minuto. |
+| `REVALIDATE_SECRET` | Chiave con cui il bot dice al sito di aggiornarsi. Uguale sul sito. |
+| `DATA_DIR` | Cartella di database e immagini. Su Railway: il percorso del **Volume** (es. `/data`). |
+| `PRESENCE_INTENT` | `true` per vedere chi è online. Prima attiva **PRESENCE INTENT** nel Developer Portal → Bot. |
+
+**Railway**
+1. **Volume**: nel progetto premi **Ctrl+K** (oppure clic destro su uno spazio vuoto della mappa del progetto) → **Volume** → scegli il servizio del bot → come *Mount path* scrivi `/data`. Poi nelle variabili del bot aggiungi `DATA_DIR=/data`. Senza Volume Railway cancella database e immagini a ogni deploy.
+2. **Settings → Networking → Generate Domain**: è l'indirizzo pubblico del bot (va in `BOT_API_URL` sul sito). Railway imposta da solo `PORT`.
+3. Su Discord: `/sito collega` nel server da mostrare, poi `/sito stato` e `/sito prova`.
+
+Per creare una chiave casuale: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 
 ## 5. Comandi
 
@@ -231,8 +252,11 @@ Canali vocali in una categoria dedicata, visibili ma non utilizzabili da nessuno
 ### 🛡️ `/automod`
 `stato` `test` `attiva` `modulo` `parola` `dominio` `ignora-canale` `ignora-ruolo` `impostazioni`
 
+### 🌐 `/sito`
+`stato` (cosa è collegato e cosa manca) `collega` (server Discord mostrato sul sito) `prova` (avviso di prova al sito)
+
 ## Personalizzazione
 
 - **Domande dei moduli ticket, emoji, colori, descrizioni**: `src/config/ticketCategories.js`
 - **Testi e valori di default**: `src/utils/db.js` (`defaultGuild`)
-- **Dati salvati**: `data/database.json` (fai un backup ogni tanto)
+- **Dati salvati**: `data/database.json` e le immagini del sito in `data/media/` (o nella cartella `DATA_DIR`). Fai un backup ogni tanto

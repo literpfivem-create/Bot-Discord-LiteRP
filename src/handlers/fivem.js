@@ -2,9 +2,8 @@
 //  - API HTTP che riceve dalla risorsa "literp_discord": statistiche, ban, revoche, eventi txAdmin (warn, kick, annunci, riavvii, connessioni)
 //  - Fallback: interroga direttamente il server FiveM (dynamic.json / players.json) per il numero di player
 //  - Aggiorna ogni minuto l'embed stato server, i canali contatore (server stats), il record player e lo stato del bot
-const http = require('http');
-const crypto = require('crypto');
 const { ActionRowBuilder, ActivityType, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+const api = require('../api/server');
 const db = require('../utils/db');
 const { COLORS, FOOTER, sendLog } = require('../utils/embeds');
 const { todayKey, unix } = require('../utils/time');
@@ -337,79 +336,28 @@ async function handleEvent(client, data) {
   });
 }
 
-// ---------------------------------------------------------------- API HTTP
+// ---------------------------------------------------------------- API HTTP (rotte della risorsa FiveM)
 
-function checkAuth(header, secret) {
-  const token = String(header || '').replace(/^Bearer\s+/i, '');
-  const a = Buffer.from(token);
-  const b = Buffer.from(secret);
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk;
-      if (body.length > 200_000) {
-        reject(new Error('Body troppo grande'));
-        req.destroy();
-      }
-    });
-    req.on('end', () => {
-      try { resolve(body ? JSON.parse(body) : {}); } catch { reject(new Error('JSON non valido')); }
-    });
-    req.on('error', reject);
-  });
-}
-
-function startApi(client) {
-  const port = Number(process.env.API_PORT) || 3000;
-  const secret = process.env.API_SECRET;
-  if (!secret || secret === 'cambia_questa_chiave_segreta') {
-    console.warn('⚠️  API_SECRET non impostata nel file .env: API FiveM disattivata (ban automatici e staff online non funzioneranno).');
-    return;
-  }
-
-  const routes = {
-    '/api/stats': async (data) => {
-      pushed = {
-        players: Number(data.players) || 0,
-        maxPlayers: Number(data.maxPlayers) || 0,
-        staff: Array.isArray(data.staff) ? data.staff.slice(0, 200) : [],
-        list: Array.isArray(data.list) ? data.list.slice(0, 2048) : null,
-        receivedAt: Date.now(),
-      };
-    },
-    '/api/ban': (data) => announceBan(client, data),
-    '/api/revoke': (data) => announceRevoke(client, data),
-    '/api/event': (data) => handleEvent(client, data),
-  };
-
-  const server = http.createServer(async (req, res) => {
-    const send = (code, obj) => {
-      res.writeHead(code, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(obj));
+function registerApi(client) {
+  api.route('POST', '/api/stats', 'API_SECRET', ({ body: data }) => {
+    pushed = {
+      players: Number(data.players) || 0,
+      maxPlayers: Number(data.maxPlayers) || 0,
+      staff: Array.isArray(data.staff) ? data.staff.slice(0, 200) : [],
+      list: Array.isArray(data.list) ? data.list.slice(0, 2048) : null,
+      receivedAt: Date.now(),
     };
-    try {
-      if (req.method === 'GET' && req.url === '/api/health') return send(200, { ok: true });
-      const route = routes[req.url];
-      if (req.method !== 'POST' || !route) return send(404, { error: 'not found' });
-      if (!checkAuth(req.headers.authorization, secret)) return send(401, { error: 'unauthorized' });
-      await route(await readBody(req));
-      return send(200, { ok: true });
-    } catch (err) {
-      console.error('[API]', err.message);
-      return send(400, { error: err.message });
-    }
   });
-
-  server.on('error', (err) => console.error(`[API] Impossibile avviare l'API sulla porta ${port}:`, err.message));
-  server.listen(port, '0.0.0.0', () => console.log(`🌐 API FiveM in ascolto sulla porta ${port}`));
+  api.route('POST', '/api/ban', 'API_SECRET', ({ body }) => announceBan(client, body));
+  api.route('POST', '/api/revoke', 'API_SECRET', ({ body }) => announceRevoke(client, body));
+  api.route('POST', '/api/event', 'API_SECRET', ({ body }) => handleEvent(client, body));
 }
 
 function start(client) {
-  startApi(client);
+  if (!api.secretOf('API_SECRET')) {
+    console.warn('⚠️  API_SECRET non impostata nel file .env: la risorsa FiveM non può inviare dati (ban automatici e staff online non funzioneranno).');
+  }
+  registerApi(client);
   updateAll(client);
   setInterval(() => updateAll(client), UPDATE_INTERVAL);
 }
