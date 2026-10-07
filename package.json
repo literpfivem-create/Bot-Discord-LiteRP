@@ -1,0 +1,19 @@
+{
+  "name": "literp-bot",
+  "version": "1.0.0",
+  "description": "Bot Discord ufficiale del server FiveM LiteRP: ticket, log, benvenuto, autorole, automod, messaggi, ban FiveM e server stats",
+  "main": "src/index.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/index.js",
+    "check": "node --check src/index.js"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.10",
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5"
+  }
+}
