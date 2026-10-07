@@ -14,6 +14,9 @@ const scheduler = require('./handlers/scheduler');
 const serverStats = require('./handlers/serverStats');
 const site = require('./handlers/site');
 const siteLive = require('./handlers/siteLive');
+const siteStaff = require('./handlers/siteStaff');
+const siteNews = require('./handlers/siteNews');
+const siteEvents = require('./handlers/siteEvents');
 
 if (!process.env.DISCORD_TOKEN) {
   console.error('❌ DISCORD_TOKEN mancante. Copia .env.example in .env e inserisci il token del bot.');
@@ -60,6 +63,9 @@ client.once(Events.ClientReady, async () => {
   fivem.start(client);
   site.start(client);
   siteLive.start(client);
+  siteStaff.start();
+  siteNews.start(client);
+  siteEvents.start();
   api.start();
   scheduler.start(client);
   serverStats.start(client).catch((e) => console.error('[Stats]', e));
@@ -79,22 +85,35 @@ client.on(Events.GuildMemberAdd, safe('Ingresso', async (member) => {
 }));
 client.on(Events.GuildMemberUpdate, safe('Aggiornamento membro', async (oldM, newM) => {
   serverStats.onMemberUpdate(oldM, newM);
+  siteStaff.onMemberUpdate(oldM, newM);
   await welcome.onUpdate(oldM, newM);
   await logs.onMemberUpdate(oldM, newM);
 }));
 client.on(Events.GuildMemberRemove, safe('Uscita', async (member) => {
   serverStats.onChange(member.guild);
+  siteStaff.onMemberLeave(member);
   await welcome.onLeave(member);
   await logs.onMemberLeave(member);
 }));
 client.on(Events.MessageCreate, safe('AutoMod', (message) => automod.onMessage(message)));
+client.on(Events.MessageCreate, safe('News', (message) => siteNews.onMessage(message)));
 client.on(Events.MessageDelete, safe('Log', (message) => logs.onMessageDelete(message)));
+client.on(Events.MessageDelete, safe('News', (message) => siteNews.onMessageDelete(message)));
 client.on(Events.MessageBulkDelete, safe('Log', (messages, channel) => logs.onMessageBulkDelete(messages, channel)));
+client.on(Events.MessageBulkDelete, safe('News', (messages) => siteNews.onBulkDelete(messages)));
 client.on(Events.MessageUpdate, safe('AutoMod', (oldM, newM) => automod.onEdit(oldM, newM)));
 client.on(Events.MessageUpdate, safe('Log', (oldM, newM) => logs.onMessageUpdate(oldM, newM)));
+client.on(Events.MessageUpdate, safe('News', (oldM, newM) => siteNews.onMessageUpdate(oldM, newM)));
+client.on(Events.GuildScheduledEventCreate, safe('Eventi', (event) => siteEvents.onChange(event)));
+client.on(Events.GuildScheduledEventUpdate, safe('Eventi', (_old, event) => siteEvents.onChange(event)));
+client.on(Events.GuildScheduledEventDelete, safe('Eventi', (event) => siteEvents.onDelete(event)));
+client.on(Events.GuildScheduledEventUserAdd, safe('Eventi', (event) => siteEvents.onInterest(event)));
+client.on(Events.GuildScheduledEventUserRemove, safe('Eventi', (event) => siteEvents.onInterest(event)));
 client.on(Events.GuildBanAdd, safe('Log', (ban) => logs.onBanAdd(ban)));
 client.on(Events.GuildBanRemove, safe('Log', (ban) => logs.onBanRemove(ban)));
 client.on(Events.VoiceStateUpdate, safe('Log', (oldS, newS) => logs.onVoiceUpdate(oldS, newS)));
+client.on(Events.GuildRoleUpdate, safe('Sito', (oldR, newR) => siteStaff.onRoleUpdate(oldR, newR)));
+client.on(Events.GuildRoleDelete, safe('Sito', (role) => siteStaff.onRoleDelete(role)));
 client.on(Events.ChannelDelete, (channel) => tickets.onChannelDelete(channel));
 
 process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', err));

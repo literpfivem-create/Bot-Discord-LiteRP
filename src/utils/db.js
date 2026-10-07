@@ -152,6 +152,12 @@ state.warns ??= {};
 state.site ??= {};
 state.site.guildId ??= null; // server Discord mostrato sul sito (/sito collega)
 state.site.goal ??= null; // obiettivo community: { target, label, channelId, reachedAt }
+state.site.staff ??= []; // gruppi della pagina Staff, in ordine: [{ roleId, name, description }] (/sito staff)
+state.site.newsChannels ??= []; // canali della pagina News: [{ channelId, kind: 'annuncio'|'aggiornamento' }] (/sito news)
+// Archivio della pagina News: posts = messaggio id -> notizia, events = evento id -> evento Discord (anche passati)
+state.news ??= {};
+state.news.posts ??= {};
+state.news.events ??= {};
 
 let timer = null;
 
@@ -240,6 +246,11 @@ function getSite() {
   return state.site;
 }
 
+/** Archivio della pagina News: { posts, events }. Live: modificalo e chiama save(). */
+function getNews() {
+  return state.news;
+}
+
 // ---- Avvisi (warn) ----
 /** Mappa userId -> [warn] del server. Live: modificala e chiama save(). */
 function getWarns(guildId) {
@@ -249,7 +260,7 @@ function getWarns(guildId) {
 module.exports = {
   DATA_DIR,
   getGuild, peekGuild, save, saveNow,
-  getSite,
+  getSite, getNews,
   getTicket, setTicket, deleteTicket, findTickets,
   getWarns,
 };

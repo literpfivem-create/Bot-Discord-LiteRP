@@ -4,6 +4,7 @@ const { EmbedBuilder } = require('discord.js');
 const db = require('../utils/db');
 const fivem = require('./fivem');
 const site = require('./site');
+const siteStaff = require('./siteStaff');
 const { COLORS, FOOTER } = require('../utils/embeds');
 
 const COUNTS_TTL = 60 * 1000;
@@ -28,31 +29,44 @@ function city(guild, gcfg) {
   return { status: 'online', players: stats.players, maxPlayers: stats.maxPlayers };
 }
 
+/**
+ * Gruppo staff di un membro: i gruppi della pagina Staff (/sito staff) se ci sono,
+ * altrimenti i ruoli di /impostazioni staff. rank più basso = più importante.
+ */
+function staffGroupOf(member, staffRoles) {
+  if (siteStaff.groups().length) {
+    const group = siteStaff.groupOf(member);
+    return group && { role: group.role, name: group.name, rank: group.index };
+  }
+  const role = member.roles.cache.filter((r) => staffRoles.has(r.id)).sort((a, b) => b.position - a.position).first();
+  return role && { role, name: role.name, rank: -role.position };
+}
+
 /** Staff online su Discord, ordinato per ruolo. null (riquadro nascosto) se mancano presenze o ruoli staff. */
 function staffOnDuty(guild, gcfg) {
   if (!site.hasPresences()) return null;
   const staffRoles = new Set(gcfg?.staffRoles ?? []);
-  if (!staffRoles.size) return null;
+  if (!staffRoles.size && !siteStaff.groups().length) return null;
 
   const list = [];
   for (const member of guild.members.cache.values()) {
     const status = member.presence?.status;
     if (member.user.bot || !ONLINE.has(status)) continue;
-    const role = member.roles.cache.filter((r) => staffRoles.has(r.id)).sort((a, b) => b.position - a.position).first();
-    if (!role) continue;
+    const group = staffGroupOf(member, staffRoles);
+    if (!group) continue;
     list.push({
       id: member.id,
       name: member.displayName,
       avatar: member.displayAvatarURL({ size: 128, extension: 'webp' }),
-      role: role.name,
-      color: role.color ? role.hexColor : null,
-      position: role.position,
+      role: group.name,
+      color: group.role.color ? group.role.hexColor : null,
+      rank: group.rank,
       status,
     });
   }
   return list
-    .sort((a, b) => b.position - a.position || a.name.localeCompare(b.name, 'it'))
-    .map(({ position, ...m }) => m);
+    .sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name, 'it'))
+    .map(({ rank, ...m }) => m);
 }
 
 function goalInfo(guild) {
@@ -80,10 +94,12 @@ async function checkGoal(guild) {
   await channel.send({ embeds: [embed] }).catch((e) => console.error('[Sito] Annuncio obiettivo fallito:', e.message));
 }
 
-/** Scarica tutti i membri con la loro presenza, così lo staff online è completo fin da subito. */
+/** Scarica tutti i membri (e la loro presenza), così pagina Staff e staff online sono completi fin da subito. */
 function loadMembers(guild) {
-  if (!guild || !site.hasPresences()) return;
-  guild.members.fetch({ withPresences: true }).catch((e) => console.error('[Sito] Caricamento membri fallito:', e.message));
+  if (!guild) return;
+  guild.members.fetch({ withPresences: site.hasPresences() })
+    .then(() => siteStaff.changed())
+    .catch((e) => console.error('[Sito] Caricamento membri fallito:', e.message));
 }
 
 function start(discordClient) {

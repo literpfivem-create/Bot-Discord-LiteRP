@@ -4,7 +4,9 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { DATA_DIR } = require('./db');
+const db = require('./db');
+
+const { DATA_DIR } = db;
 
 const MEDIA_DIR = path.join(DATA_DIR, 'media');
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -46,4 +48,16 @@ function remove(file) {
   if (found) fs.rmSync(found.path, { force: true });
 }
 
-module.exports = { saveFromUrl, find, remove, FILE_RE };
+/** Immagini usate da notizie ed eventi della pagina News. */
+function usedFiles() {
+  const { posts, events } = db.getNews();
+  return new Set([...Object.values(posts).flatMap((p) => p.images), ...Object.values(events).map((e) => e.image)].filter(Boolean));
+}
+
+/** Elimina i file che nessuna notizia o evento usa più (da chiamare dopo aver tolto/cambiato le immagini). */
+function removeUnused(files) {
+  const used = usedFiles();
+  for (const file of new Set(files)) if (file && !used.has(file)) remove(file);
+}
+
+module.exports = { saveFromUrl, find, remove, removeUnused, FILE_RE };

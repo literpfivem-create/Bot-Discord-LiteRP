@@ -255,8 +255,19 @@ Canali vocali in una categoria dedicata, visibili ma non utilizzabili da nessuno
 ### 🌐 `/sito`
 `stato` (cosa è collegato e cosa manca) `collega` (server Discord mostrato sul sito) `prova` (avviso di prova al sito)
 `obiettivo imposta` (barra "Siamo a 870 / 1000 membri" sul sito, annuncio al traguardo) `obiettivo rimuovi`
+`staff aggiungi` (ruolo come gruppo della pagina Staff, con descrizione, nome e posizione) `staff rimuovi` `staff ordine` `staff lista`
+`news aggiungi` (canale i cui messaggi diventano notizie, tipo Annunci o Aggiornamenti) `news rimuovi` `news lista`
 
-Sul sito lo **staff in servizio** sono i membri con un ruolo staff (`/impostazioni staff`) online su Discord: serve `PRESENCE_INTENT=true`.
+La **pagina News** mostra ogni messaggio dei canali di `/sito news` (titolo = prima riga o titolo dell'embed, testo, fino a 4 immagini),
+con autore "Staff di LiteRP". Modifiche ed eliminazioni su Discord si vedono anche sul sito; quando aggiungi un canale e a ogni
+avvio il bot rilegge gli ultimi 50 messaggi. Le immagini vengono salvate nella cartella dati (`media/`), perché i link Discord scadono.
+In cima alla pagina ci sono gli **eventi programmati di Discord** (menu del server → Crea evento) con conto alla rovescia;
+quelli finiti restano come storico (ultimi 50), quelli annullati spariscono.
+
+La **pagina Staff** mostra i gruppi di `/sito staff`, nell'ordine scelto: nome e colore vengono dal ruolo Discord (o dal nome scelto),
+i membri da chi ha il ruolo. Chi ha più ruoli compare solo nel primo gruppo. Senza gruppi il sito usa la lista scritta nel suo codice.
+
+Sul sito lo **staff in servizio** sono i membri di quei gruppi (o, se non ce ne sono, con un ruolo di `/impostazioni staff`) online su Discord: serve `PRESENCE_INTENT=true`.
 
 ## Personalizzazione
 
