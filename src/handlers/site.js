@@ -30,7 +30,11 @@ function siteGuild() {
 
 const hasPresences = () => Boolean(client?.options.intents.has(GatewayIntentBits.GuildPresences));
 
-const siteUrl = () => String(process.env.SITE_URL || '').trim().replace(/\/+$/, '');
+/** SITE_URL senza "/" finale; aggiunge https:// se è stato scritto solo il dominio (es. literp.vercel.app). */
+function siteUrl() {
+  const url = String(process.env.SITE_URL || '').trim().replace(/\/+$/, '');
+  return !url || /^https?:\/\//i.test(url) ? url : `https://${url}`;
+}
 
 // ---------------------------------------------------------------- avvisi al sito
 
@@ -112,4 +116,4 @@ function start(discordClient) {
   registerApi();
 }
 
-module.exports = { start, notify, sendRevalidate, siteGuild, hasPresences, siteUrl, status, TAGS };
+module.exports = { start, notify, sendRevalidate, siteRoute, siteGuild, hasPresences, siteUrl, status, TAGS };

@@ -16,6 +16,7 @@ const OFFLINE_CONFIRMATIONS = 2; // letture "offline" consecutive prima di avvis
 let pushed = null; // { players, maxPlayers, staff: [{name, id, discord}], list: [{id, name}], receivedAt }
 const statusState = new Map(); // guildId -> { online, offlineCount, alertId }
 const restartAlerts = new Map(); // guildId -> messageId
+const latest = new Map(); // guildId -> ultimo stato letto (per il sito)
 let updating = false;
 
 // ---------------------------------------------------------------- lettura stato
@@ -167,6 +168,7 @@ async function updateGuild(client, guild) {
   const gcfg = db.peekGuild(guild.id);
   if (!gcfg) return null;
   const stats = await getStats(gcfg);
+  latest.set(guild.id, stats);
   updatePeak(gcfg, stats);
 
   const channel = guild.channels.cache.get(gcfg.channels.serverStatus);
@@ -362,4 +364,10 @@ function start(client) {
   setInterval(() => updateAll(client), UPDATE_INTERVAL);
 }
 
-module.exports = { start, getStats, buildStatus, updateGuild, announceBan };
+/** Ultimo stato letto dall'aggiornamento di ogni minuto (null se non ancora letto). */
+const getLatest = (guildId) => latest.get(guildId) ?? null;
+
+/** true se il bot ha un modo per leggere il server: IP impostato o dati inviati dalla risorsa FiveM. */
+const hasSource = (gcfg) => Boolean(gcfg?.fivem.ip) || pushed !== null;
+
+module.exports = { start, getStats, getLatest, hasSource, buildStatus, updateGuild, announceBan };

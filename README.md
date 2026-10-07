@@ -254,6 +254,9 @@ Canali vocali in una categoria dedicata, visibili ma non utilizzabili da nessuno
 
 ### 🌐 `/sito`
 `stato` (cosa è collegato e cosa manca) `collega` (server Discord mostrato sul sito) `prova` (avviso di prova al sito)
+`obiettivo imposta` (barra "Siamo a 870 / 1000 membri" sul sito, annuncio al traguardo) `obiettivo rimuovi`
+
+Sul sito lo **staff in servizio** sono i membri con un ruolo staff (`/impostazioni staff`) online su Discord: serve `PRESENCE_INTENT=true`.
 
 ## Personalizzazione
 

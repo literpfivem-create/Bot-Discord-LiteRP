@@ -47,7 +47,7 @@ module.exports = {
         },
         { name: '📊 Server stats', value: '`/serverstats aggiungi|testo|modifica|rimuovi|lista`\n`/serverstats aggiorna|ripara|reset`\n`/serverstats categoria nome|posizione`' },
         { name: '🛡️ AutoMod', value: '`/automod stato|test|attiva|modulo|parola|dominio|ignora-canale|ignora-ruolo|impostazioni`' },
-        { name: '🌐 Sito', value: '`/sito stato|collega|prova`' },
+        { name: '🌐 Sito', value: '`/sito stato|collega|prova`\n`/sito obiettivo imposta|rimuovi`' },
       );
     }
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });

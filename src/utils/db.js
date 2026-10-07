@@ -149,7 +149,9 @@ try {
 state.guilds ??= {};
 state.tickets ??= {};
 state.warns ??= {};
-state.site ??= { guildId: null }; // server Discord mostrato sul sito (/sito collega)
+state.site ??= {};
+state.site.guildId ??= null; // server Discord mostrato sul sito (/sito collega)
+state.site.goal ??= null; // obiettivo community: { target, label, channelId, reachedAt }
 
 let timer = null;
 

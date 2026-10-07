@@ -13,6 +13,7 @@ const fivem = require('./handlers/fivem');
 const scheduler = require('./handlers/scheduler');
 const serverStats = require('./handlers/serverStats');
 const site = require('./handlers/site');
+const siteLive = require('./handlers/siteLive');
 
 if (!process.env.DISCORD_TOKEN) {
   console.error('❌ DISCORD_TOKEN mancante. Copia .env.example in .env e inserisci il token del bot.');
@@ -58,6 +59,7 @@ client.once(Events.ClientReady, async () => {
   }
   fivem.start(client);
   site.start(client);
+  siteLive.start(client);
   api.start();
   scheduler.start(client);
   serverStats.start(client).catch((e) => console.error('[Stats]', e));
@@ -70,6 +72,7 @@ client.on(Events.InteractionCreate, (interaction) => handleInteraction(client, i
 
 client.on(Events.GuildMemberAdd, safe('Ingresso', async (member) => {
   serverStats.onChange(member.guild);
+  siteLive.checkGoal(member.guild).catch((e) => console.error('[Sito]', e));
   const removed = await automod.onJoin(member);
   await logs.onMemberJoin(member);
   if (!removed) await welcome.onJoin(member);
