@@ -8,12 +8,13 @@ const db = require('../utils/db');
 const { COLORS, FOOTER, sendLog } = require('../utils/embeds');
 const { todayKey, unix } = require('../utils/time');
 const serverStats = require('./serverStats');
+const fivemPlayers = require('./fivemPlayers');
 
 const UPDATE_INTERVAL = 60 * 1000;
 const PUSH_TTL = 90 * 1000; // dati della risorsa considerati validi per 90s
 const OFFLINE_CONFIRMATIONS = 2; // letture "offline" consecutive prima di avvisare
 
-let pushed = null; // { players, maxPlayers, staff: [{name, id, discord}], list: [{id, name}], receivedAt }
+let pushed = null; // { players, maxPlayers, staff: [{name, id, discord}], list: [{id, name, discord}], receivedAt }
 const statusState = new Map(); // guildId -> { online, offlineCount, alertId }
 const restartAlerts = new Map(); // guildId -> messageId
 const latest = new Map(); // guildId -> ultimo stato letto (per il sito)
@@ -236,6 +237,7 @@ async function announceBan(client, data) {
   const discordId = validDiscordId(data.discord);
   const user = discordId ? await client.users.fetch(discordId).catch(() => null) : null;
   const duration = formatBanDuration(data);
+  fivemPlayers.recordSanction(discordId, { type: 'ban', id: data.banId, reason: data.reason, expiration: data.expiration });
   const reason = String(data.reason || 'Nessun motivo specificato').slice(0, 1024);
   let dmSent = false;
 
@@ -278,6 +280,7 @@ async function announceBan(client, data) {
 async function announceRevoke(client, data) {
   const discordId = validDiscordId(data.discord);
   const isBan = data.actionType !== 'warn';
+  fivemPlayers.revokeSanction(discordId, data.actionId);
   await forEachGuild(client, async (guild, gcfg) => {
     const embed = new EmbedBuilder()
       .setColor(COLORS.success)
@@ -327,6 +330,7 @@ async function handleEvent(client, data) {
   const style = EVENT_STYLE[type];
   if (!style) throw new Error(`Tipo evento sconosciuto: ${type}`);
   const discordId = validDiscordId(data.discord);
+  if (type === 'warn' || type === 'kick') fivemPlayers.recordSanction(discordId, { type, id: data.actionId, reason: data.reason });
   await forEachGuild(client, async (guild, gcfg) => {
     const embed = new EmbedBuilder().setColor(style.color).setTitle(style.title).setTimestamp();
     if (data.name) embed.addFields({ name: '👤 Giocatore', value: String(data.name).slice(0, 256), inline: true });
@@ -349,6 +353,7 @@ function registerApi(client) {
       list: Array.isArray(data.list) ? data.list.slice(0, 2048) : null,
       receivedAt: Date.now(),
     };
+    fivemPlayers.onStats(pushed.list); // ore giocate e ultimo accesso per il profilo del sito
   });
   api.route('POST', '/api/ban', 'API_SECRET', ({ body }) => announceBan(client, body));
   api.route('POST', '/api/revoke', 'API_SECRET', ({ body }) => announceRevoke(client, body));

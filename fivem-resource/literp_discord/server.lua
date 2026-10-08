@@ -1,6 +1,11 @@
 local secret = GetConvar('literp_discord_secret', '')
 local ESX, QBCore
 
+--- true se Config.Framework = 'qbox' e qbx_core è avviato (controllato ogni volta: funziona anche se questa risorsa parte prima)
+local function qbox()
+    return Config.Framework == 'qbox' and GetResourceState('qbx_core') == 'started'
+end
+
 local function debug(msg)
     if Config.Debug then print(('^5[literp_discord]^7 %s'):format(msg)) end
 end
@@ -27,6 +32,9 @@ CreateThread(function()
         ESX = exports['es_extended']:getSharedObject()
     elseif Config.Framework == 'qbcore' and GetResourceState('qb-core') == 'started' then
         QBCore = exports['qb-core']:GetCoreObject()
+    elseif Config.Framework == 'qbox' then
+        Wait(10000)
+        if not qbox() then print('^1[literp_discord] Config.Framework = "qbox" ma qbx_core non è avviato: personaggi e staff Qbox non verranno letti.^7') end
     end
 end)
 
@@ -67,6 +75,12 @@ local function isStaff(src)
         end
     end
 
+    if qbox() then
+        for _, g in ipairs(Config.StaffGroups) do
+            if exports.qbx_core:HasPermission(tonumber(src), g) then return true end
+        end
+    end
+
     return false
 end
 
@@ -81,7 +95,8 @@ local function sendStats()
             staff[#staff + 1] = { id = tonumber(src), name = name, discord = getDiscordId(src) }
         end
         if Config.SendPlayerList then
-            list[#list + 1] = { id = tonumber(src), name = name }
+            -- discord: serve al bot per contare le ore giocate nel profilo del sito
+            list[#list + 1] = { id = tonumber(src), name = name, discord = getDiscordId(src) }
         end
     end
     post('/api/stats', {
@@ -97,6 +112,82 @@ CreateThread(function()
     while true do
         sendStats()
         Wait(Config.StatsInterval * 1000)
+    end
+end)
+
+-- ===================================================== PERSONAGGI (profilo del sito)
+
+local lastCharacter = {} -- src -> ultimo personaggio inviato (per inviarlo anche all'uscita, quando il player non c'è più)
+
+--- Lavoro o gang (nil per la gang "none", cioè nessuna gang)
+local function groupInfo(g)
+    if type(g) ~= 'table' or not g.name or g.name == 'none' then return nil end
+    return { label = g.label or g.name, grade = type(g.grade) == 'table' and g.grade.name or nil, onduty = g.onduty }
+end
+
+--- Dati del personaggio Qbox caricato da questo giocatore (nil se non ha ancora scelto il personaggio)
+local function characterOf(src)
+    local player = exports.qbx_core:GetPlayer(tonumber(src))
+    if not player then return nil end
+    local pd = player.PlayerData
+    local info, money = pd.charinfo or {}, pd.money or {}
+    return {
+        citizenid = pd.citizenid,
+        firstname = info.firstname,
+        lastname = info.lastname,
+        birthdate = info.birthdate,
+        gender = info.gender,
+        nationality = info.nationality,
+        phone = info.phone,
+        job = groupInfo(pd.job),
+        gang = groupInfo(pd.gang),
+        money = { cash = money.cash, bank = money.bank },
+    }
+end
+
+--- Invia al bot i personaggi di questi giocatori (lista di server id)
+local function sendCharacters(sources)
+    if not (Config.SendCharacters and qbox()) then return end
+    local players = {}
+    for _, src in ipairs(sources) do
+        local discord = getDiscordId(src)
+        local character = discord and characterOf(src)
+        if character then
+            lastCharacter[tostring(src)] = { discord = discord, character = character }
+            players[#players + 1] = lastCharacter[tostring(src)]
+        end
+    end
+    if #players > 0 then post('/api/characters', { players = players }) end
+end
+
+-- Ingresso in città (personaggio scelto): Qbox passa l'oggetto player
+AddEventHandler('QBCore:Server:PlayerLoaded', function(player)
+    local src = player and player.PlayerData and player.PlayerData.source
+    if src then SetTimeout(2000, function() sendCharacters({ src }) end) end
+end)
+
+-- Cambio lavoro o gang: aggiorna subito
+AddEventHandler('QBCore:Server:OnJobUpdate', function(src) sendCharacters({ src }) end)
+AddEventHandler('QBCore:Server:OnGangUpdate', function(src) sendCharacters({ src }) end)
+
+-- Uscita (cambio personaggio o disconnessione): invia l'ultimo stato conosciuto
+local function sendLast(src)
+    local last = lastCharacter[tostring(src)]
+    if not last then return end
+    local fresh = qbox() and characterOf(src)
+    if fresh then last.character = fresh end
+    post('/api/characters', { players = { last } })
+    lastCharacter[tostring(src)] = nil
+end
+AddEventHandler('QBCore:Server:OnPlayerUnload', function(src) sendLast(src) end)
+AddEventHandler('playerDropped', function() sendLast(source) end)
+
+-- Aggiornamento periodico (soldi e dati che cambiano spesso)
+CreateThread(function()
+    Wait(10000)
+    while true do
+        sendCharacters(GetPlayers())
+        Wait(math.max(60, Config.CharacterInterval) * 1000)
     end
 end)
 
@@ -165,6 +256,7 @@ if Config.TxAdmin.Warns then
             discord = discordFromIds(ev.targetIds),
             author = ev.author,
             reason = ev.reason,
+            actionId = ev.actionId,
         })
     end)
 end

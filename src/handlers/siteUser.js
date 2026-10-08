@@ -1,9 +1,10 @@
 // Profilo del sito (GET /site/user/:id): il sito lo chiede solo per l'utente che ha fatto l'accesso con Discord,
-// con l'ID preso dalla sua sessione firmata. Nessuna cache: ruoli e whitelist sono sempre quelli di adesso.
+// con l'ID preso dalla sua sessione firmata. Nessuna cache: ruoli, whitelist e dati FiveM sono sempre quelli di adesso.
 const api = require('../api/server');
 const db = require('../utils/db');
 const site = require('./site');
 const siteStaff = require('./siteStaff');
+const fivemPlayers = require('./fivemPlayers');
 
 const SNOWFLAKE = /^\d{17,20}$/;
 const UNKNOWN = new Set([10007, 10013]); // Unknown Member, Unknown User
@@ -47,6 +48,9 @@ function start() {
       guild: { name: guild.name, icon: guild.iconURL({ size: 128, extension: 'webp' }) },
       inGuild: Boolean(member),
       member: member ? profile(member) : null,
+      // dati in città: null se non è mai entrato (o il server FiveM non è ancora collegato)
+      fivem: fivemPlayers.profile(params.id),
+      fivemConnected: fivemPlayers.serverActive(),
     };
   });
 }

@@ -127,7 +127,7 @@ Senza la risorsa il bot mostra comunque i **player online** leggendo `IP:porta/d
    # ...e chi fa parte del gruppo, tramite ID Discord
    add_principal identifier.discord:123456789012345678 group.admin
    ```
-3. In `config.lua` imposta `Config.BotUrl` (es. `http://IP_DEL_BOT:3001`), la modalità staff (`ace`, `esx` o `qbcore`) e quali eventi txAdmin inviare.
+3. In `config.lua` imposta `Config.BotUrl` (es. `http://IP_DEL_BOT:3001`), la modalità staff (`qbox`, `ace`, `esx` o `qbcore`; con `qbox` invia anche i personaggi per il profilo del sito) e quali eventi txAdmin inviare.
 4. Se bot e server FiveM sono su macchine diverse, apri la porta `API_PORT` nel firewall della macchina del bot.
 5. Prova dalla console live di txAdmin: `literp_testban` → deve comparire un ban di test nel canale ban.
 

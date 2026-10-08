@@ -245,13 +245,13 @@ ensure literp_discord
 
 ```lua
 Config.BotUrl = 'http://127.0.0.1:3001'   -- vedi la tabella del passo 2
-Config.Framework = 'esx'                   -- 'esx', 'qbcore' oppure 'ace'
+Config.Framework = 'qbox'                  -- 'qbox', 'esx', 'qbcore' oppure 'ace'
 Config.StaffGroups = { 'helper', 'mod', 'admin', 'superadmin', 'god' }   -- i gruppi staff del tuo server
 ```
 
 **Come vengono riconosciuti gli staff online:**
 - **ESX**: i giocatori con un gruppo tra quelli in `Config.StaffGroups` (es. `admin`).
-- **QBCore**: i giocatori con uno dei permessi in `Config.StaffGroups`.
+- **QBCore** e **Qbox**: i giocatori con uno dei permessi in `Config.StaffGroups`.
 - **ACE**: aggiungi nel `server.cfg`:
 
 ```cfg
@@ -260,6 +260,8 @@ add_principal identifier.discord:ID_DISCORD_DELLO_STAFF group.admin
 ```
 
 In tutti i casi è sempre riconosciuto staff chi ha il permesso ACE `literp.staff`.
+
+**Profilo del sito (solo Qbox):** con `Config.SendCharacters = true` la risorsa invia al bot i personaggi di chi entra in città (nome, lavoro, gang, contanti, banca, telefono), all'ingresso, ogni `Config.CharacterInterval` secondi e all'uscita. Il bot conta anche le ore giocate (serve `Config.SendPlayerList = true`) e salva ban, avvertimenti e kick di txAdmin. Tutto viene collegato all'**ID Discord** del giocatore: lo vede solo lui nella pagina **/profilo** del sito. Nel `server.cfg` metti `ensure literp_discord` **dopo** `qbx_core`.
 
 Nello stesso file puoi spegnere i singoli eventi di txAdmin (`Config.TxAdmin`) e attivare i log di entrata e uscita dei giocatori (`Config.LogConnections`, sconsigliato con tanti player).
 

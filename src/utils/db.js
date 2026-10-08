@@ -159,6 +159,8 @@ state.site.whitelistRoleId ??= null; // ruolo che vale come "whitelist" nel prof
 state.news ??= {};
 state.news.posts ??= {};
 state.news.events ??= {};
+// Giocatori FiveM per il profilo del sito: ID Discord -> { characters, lastCharacter, playtime, firstSeen, lastSeen, sanctions }
+state.fivemPlayers ??= {};
 
 let timer = null;
 
@@ -247,6 +249,11 @@ function getSite() {
   return state.site;
 }
 
+/** Giocatori FiveM (ID Discord -> dati in game). Live: modificali e chiama save(). */
+function getFivemPlayers() {
+  return state.fivemPlayers;
+}
+
 /** Archivio della pagina News: { posts, events }. Live: modificalo e chiama save(). */
 function getNews() {
   return state.news;
@@ -261,7 +268,7 @@ function getWarns(guildId) {
 module.exports = {
   DATA_DIR,
   getGuild, peekGuild, save, saveNow,
-  getSite, getNews,
+  getSite, getNews, getFivemPlayers,
   getTicket, setTicket, deleteTicket, findTickets,
   getWarns,
 };
