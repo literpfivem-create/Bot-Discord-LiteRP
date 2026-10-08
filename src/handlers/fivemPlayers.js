@@ -1,5 +1,5 @@
 // Dati dei giocatori FiveM per il profilo del sito, collegati all'ID Discord:
-//  - personaggi (Qbox): nome, lavoro, gang, soldi, telefono... inviati dalla risorsa literp_discord (POST /api/characters)
+//  - personaggi (ESX): nome, data di nascita, lavoro, soldi... inviati dalla risorsa literp_discord (POST /api/characters)
 //  - ore giocate e ultimo accesso: contati dalle statistiche inviate ogni 30s (/api/stats, lista player con Discord)
 //  - sanzioni in game (ban, avvertimenti, kick di txAdmin) registrate da fivem.js
 // Il profilo è visibile solo al diretto interessato (dopo l'accesso al sito); l'autore delle sanzioni non viene salvato.
@@ -51,7 +51,7 @@ const serverActive = () => Date.now() - lastStatsAt < SERVER_TTL;
 
 // ---------------------------------------------------------------- personaggi
 
-/** Personaggio Qbox ripulito (solo i campi mostrati sul profilo), oppure null se non valido. */
+/** Personaggio ripulito (solo i campi mostrati sul profilo), oppure null se non valido. */
 function cleanCharacter(c) {
   const citizenid = str(c?.citizenid, 20);
   if (!citizenid) return null;
@@ -61,7 +61,7 @@ function cleanCharacter(c) {
     firstname: str(c.firstname, 40),
     lastname: str(c.lastname, 40),
     birthdate: str(c.birthdate, 20),
-    gender: Number(c.gender) === 1 ? 'F' : 'M', // Qbox: 0 = uomo, 1 = donna
+    gender: ['f', '1'].includes(String(c.gender).toLowerCase()) ? 'F' : 'M', // ESX: 'm'/'f' (Qbox: 0/1)
     nationality: str(c.nationality, 40),
     phone: str(c.phone, 20),
     job: group(c.job) && { ...group(c.job), onduty: Boolean(c.job.onduty) },

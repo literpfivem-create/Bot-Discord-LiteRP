@@ -1,23 +1,27 @@
 local secret = GetConvar('literp_discord_secret', '')
-local ESX, QBCore
+local botUrl = GetConvar('literp_discord_url', '')
+if botUrl == '' then botUrl = Config.BotUrl end
+botUrl = botUrl:gsub('/+$', '')
+local QBCore
 
---- true se Config.Framework = 'qbox' e qbx_core è avviato (controllato ogni volta: funziona anche se questa risorsa parte prima)
-local function qbox()
-    return Config.Framework == 'qbox' and GetResourceState('qbx_core') == 'started'
+--- Oggetto ESX se Config.Framework = 'esx' e es_extended è avviato (cercato ogni volta finché non c'è: funziona anche se questa risorsa parte prima)
+local ESX
+local function esx()
+    if ESX then return ESX end
+    if Config.Framework == 'esx' and GetResourceState('es_extended') == 'started' then
+        ESX = exports['es_extended']:getSharedObject()
+    end
+    return ESX
 end
 
 local function debug(msg)
     if Config.Debug then print(('^5[literp_discord]^7 %s'):format(msg)) end
 end
 
-if secret == '' then
-    print('^1[literp_discord] ATTENZIONE: imposta "set literp_discord_secret" nel server.cfg, altrimenti il bot rifiuterà i dati!^7')
-end
-
 local function post(path, data)
-    PerformHttpRequest(Config.BotUrl .. path, function(status)
+    PerformHttpRequest(botUrl .. path, function(status)
         if status ~= 200 then
-            print(('^1[literp_discord] Errore %s inviando %s al bot (bot spento, URL o chiave errati?)^7'):format(tostring(status), path))
+            print(('^1[literp_discord] Errore %s inviando %s al bot (bot spento, indirizzo o chiave errati?)^7'):format(tostring(status), path))
         else
             debug(('%s inviato'):format(path))
         end
@@ -27,14 +31,44 @@ local function post(path, data)
     })
 end
 
+-- ===================================================== CONTROLLO ALL'AVVIO
+-- Scrive in console se il collegamento al bot funziona (ripetibile con il comando console: literp_check)
+
+local CHECK_ERRORS = {
+    [0] = 'il bot non risponde: controlla literp_discord_url nel server.cfg e che il bot sia acceso',
+    [401] = 'chiave sbagliata: literp_discord_secret deve essere uguale ad API_SECRET del bot',
+    [404] = 'il bot è troppo vecchio: aggiornalo',
+    [503] = 'nel bot manca API_SECRET',
+}
+
+local function checkConnection()
+    if secret == '' then
+        print('^1[literp_discord] Manca la chiave: aggiungi  set literp_discord_secret "..."  nel server.cfg^7')
+        return
+    end
+    PerformHttpRequest(botUrl .. '/api/ping', function(status)
+        if status == 200 then
+            print(('^2[literp_discord] Collegato al bot (%s)^7'):format(botUrl))
+        else
+            print(('^1[literp_discord] Collegamento al bot NON riuscito (%s, errore %s): %s^7'):format(
+                botUrl, tostring(status), CHECK_ERRORS[status] or 'errore sconosciuto'))
+        end
+    end, 'GET', '', { ['Authorization'] = 'Bearer ' .. secret })
+end
+
+RegisterCommand('literp_check', function(src)
+    if src == 0 then checkConnection() end
+end, true)
+
 CreateThread(function()
-    if Config.Framework == 'esx' and GetResourceState('es_extended') == 'started' then
-        ESX = exports['es_extended']:getSharedObject()
-    elseif Config.Framework == 'qbcore' and GetResourceState('qb-core') == 'started' then
+    if Config.Framework == 'qbcore' and GetResourceState('qb-core') == 'started' then
         QBCore = exports['qb-core']:GetCoreObject()
-    elseif Config.Framework == 'qbox' then
-        Wait(10000)
-        if not qbox() then print('^1[literp_discord] Config.Framework = "qbox" ma qbx_core non è avviato: personaggi e staff Qbox non verranno letti.^7') end
+    end
+    Wait(3000)
+    checkConnection()
+    if Config.Framework == 'esx' then
+        Wait(7000)
+        if not esx() then print('^1[literp_discord] Config.Framework = "esx" ma es_extended non è avviato: personaggi e staff ESX non verranno letti.^7') end
     end
 end)
 
@@ -59,7 +93,7 @@ end
 local function isStaff(src)
     if IsPlayerAceAllowed(src, Config.StaffAce) then return true end
 
-    if ESX then
+    if esx() then
         local xPlayer = ESX.GetPlayerFromId(tonumber(src))
         if xPlayer then
             local group = xPlayer.getGroup()
@@ -72,12 +106,6 @@ local function isStaff(src)
     if QBCore then
         for _, g in ipairs(Config.StaffGroups) do
             if QBCore.Functions.HasPermission(tonumber(src), g) then return true end
-        end
-    end
-
-    if qbox() then
-        for _, g in ipairs(Config.StaffGroups) do
-            if exports.qbx_core:HasPermission(tonumber(src), g) then return true end
         end
     end
 
@@ -119,35 +147,35 @@ end)
 
 local lastCharacter = {} -- src -> ultimo personaggio inviato (per inviarlo anche all'uscita, quando il player non c'è più)
 
---- Lavoro o gang (nil per la gang "none", cioè nessuna gang)
-local function groupInfo(g)
-    if type(g) ~= 'table' or not g.name or g.name == 'none' then return nil end
-    return { label = g.label or g.name, grade = type(g.grade) == 'table' and g.grade.name or nil, onduty = g.onduty }
+--- ID del personaggio mostrato sul profilo: codice SSN di ESX, altrimenti lo slot (char1, char2...).
+--- L'identifier completo NON viene inviato: contiene la licenza Rockstar del giocatore.
+local function characterId(xPlayer)
+    if type(xPlayer.ssn) == 'string' and xPlayer.ssn ~= '' then return xPlayer.ssn end
+    return tostring(xPlayer.identifier or ''):match('^(char%d+):') or 'principale'
 end
 
---- Dati del personaggio Qbox caricato da questo giocatore (nil se non ha ancora scelto il personaggio)
+--- Dati del personaggio ESX caricato da questo giocatore (nil se non ha ancora scelto il personaggio)
 local function characterOf(src)
-    local player = exports.qbx_core:GetPlayer(tonumber(src))
-    if not player then return nil end
-    local pd = player.PlayerData
-    local info, money = pd.charinfo or {}, pd.money or {}
+    local xPlayer = esx() and ESX.GetPlayerFromId(tonumber(src))
+    if not xPlayer then return nil end
+    local job = xPlayer.getJob() or {}
+    local bank = xPlayer.getAccount('bank')
     return {
-        citizenid = pd.citizenid,
-        firstname = info.firstname,
-        lastname = info.lastname,
-        birthdate = info.birthdate,
-        gender = info.gender,
-        nationality = info.nationality,
-        phone = info.phone,
-        job = groupInfo(pd.job),
-        gang = groupInfo(pd.gang),
-        money = { cash = money.cash, bank = money.bank },
+        citizenid = characterId(xPlayer),
+        firstname = xPlayer.get('firstName'),
+        lastname = xPlayer.get('lastName'),
+        birthdate = xPlayer.get('dateofbirth'),
+        gender = xPlayer.get('sex'), -- 'm' / 'f'
+        job = (job.name and job.name ~= 'unemployed')
+            and { label = job.label or job.name, grade = job.grade_label, onduty = job.onDuty }
+            or nil,
+        money = { cash = xPlayer.getMoney(), bank = bank and bank.money or nil },
     }
 end
 
 --- Invia al bot i personaggi di questi giocatori (lista di server id)
 local function sendCharacters(sources)
-    if not (Config.SendCharacters and qbox()) then return end
+    if not (Config.SendCharacters and esx()) then return end
     local players = {}
     for _, src in ipairs(sources) do
         local discord = getDiscordId(src)
@@ -160,26 +188,25 @@ local function sendCharacters(sources)
     if #players > 0 then post('/api/characters', { players = players }) end
 end
 
--- Ingresso in città (personaggio scelto): Qbox passa l'oggetto player
-AddEventHandler('QBCore:Server:PlayerLoaded', function(player)
-    local src = player and player.PlayerData and player.PlayerData.source
-    if src then SetTimeout(2000, function() sendCharacters({ src }) end) end
+-- Ingresso in città (personaggio scelto o creato)
+AddEventHandler('esx:playerLoaded', function(playerId)
+    SetTimeout(2000, function() sendCharacters({ playerId }) end)
 end)
 
--- Cambio lavoro o gang: aggiorna subito
-AddEventHandler('QBCore:Server:OnJobUpdate', function(src) sendCharacters({ src }) end)
-AddEventHandler('QBCore:Server:OnGangUpdate', function(src) sendCharacters({ src }) end)
+-- Cambio lavoro: aggiorna subito
+AddEventHandler('esx:setJob', function(playerId) sendCharacters({ playerId }) end)
 
 -- Uscita (cambio personaggio o disconnessione): invia l'ultimo stato conosciuto
 local function sendLast(src)
     local last = lastCharacter[tostring(src)]
     if not last then return end
-    local fresh = qbox() and characterOf(src)
+    local fresh = characterOf(src)
     if fresh then last.character = fresh end
     post('/api/characters', { players = { last } })
     lastCharacter[tostring(src)] = nil
 end
-AddEventHandler('QBCore:Server:OnPlayerUnload', function(src) sendLast(src) end)
+-- esx:playerDropped arriva sia al cambio personaggio sia all'uscita, quando i dati ESX ci sono ancora
+AddEventHandler('esx:playerDropped', function(playerId) sendLast(playerId) end)
 AddEventHandler('playerDropped', function() sendLast(source) end)
 
 -- Aggiornamento periodico (soldi e dati che cambiano spesso)

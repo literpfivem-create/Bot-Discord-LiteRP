@@ -119,17 +119,19 @@ Senza la risorsa il bot mostra comunque i **player online** leggendo `IP:porta/d
 1. Copia `fivem-resource/literp_discord` nella cartella `resources` del server.
 2. Nel `server.cfg`:
    ```cfg
+   set literp_discord_url "https://NOME.up.railway.app"   # indirizzo del bot
    set literp_discord_secret "la_stessa_chiave_di_API_SECRET"
-   ensure literp_discord
+   ensure literp_discord   # dopo es_extended
 
    # Chi è staff (modalità 'ace'): per gruppo...
    add_ace group.admin literp.staff allow
    # ...e chi fa parte del gruppo, tramite ID Discord
    add_principal identifier.discord:123456789012345678 group.admin
    ```
-3. In `config.lua` imposta `Config.BotUrl` (es. `http://IP_DEL_BOT:3001`), la modalità staff (`qbox`, `ace`, `esx` o `qbcore`; con `qbox` invia anche i personaggi per il profilo del sito) e quali eventi txAdmin inviare.
+3. `config.lua` è già pronto per ESX (staff dai gruppi ESX e personaggi per il profilo del sito). Da cambiare solo per altri framework (`qbcore`, `ace`), gruppi staff diversi o per spegnere eventi txAdmin.
 4. Se bot e server FiveM sono su macchine diverse, apri la porta `API_PORT` nel firewall della macchina del bot.
-5. Prova dalla console live di txAdmin: `literp_testban` → deve comparire un ban di test nel canale ban.
+5. All'avvio la console scrive `Collegato al bot` oppure il motivo dell'errore (riprova con `literp_check`).
+6. Prova dalla console live di txAdmin: `literp_testban` → deve comparire un ban di test nel canale ban.
 
 ### Cosa arriva su Discord da txAdmin (nessuna configurazione su txAdmin)
 

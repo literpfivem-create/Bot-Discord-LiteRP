@@ -211,8 +211,9 @@ Se invece compare `⚠️ API_SECRET non impostata`, la chiave non è stata salv
 
 Scegli il tuo caso:
 
-| Dove gira il bot | Cosa fare | `BotUrl` (passo 4) |
+| Dove gira il bot | Cosa fare | Indirizzo del bot (`literp_discord_url`, passo 3) |
 |---|---|---|
+| **Su Railway** | Genera il dominio pubblico in *Settings → Networking* | `https://NOME.up.railway.app` |
 | **Sulla stessa macchina/VPS del server FiveM** *(consigliato)* | Niente | `http://127.0.0.1:3001` |
 | **Su una VPS diversa** | Apri la porta 3001 nel firewall della VPS del bot | `http://IP_VPS_BOT:3001` |
 | **Sul tuo PC di casa** | Apri la porta 3001 nel firewall di Windows **e** inoltrala dal router al PC (port forwarding). Il PC deve restare acceso | `http://TUO_IP_PUBBLICO:3001` |
@@ -235,23 +236,27 @@ Se la pagina non si carica, la porta è chiusa (firewall o router).
 
 ```cfg
 # --- LiteRP Bot Discord ---
+set literp_discord_url "https://NOME.up.railway.app"
 set literp_discord_secret "la_chiave_che_hai_generato"
 ensure literp_discord
 ```
 
-> ⚠️ La chiave deve essere **identica** a quella del `.env` del bot.
+> ⚠️ La chiave deve essere **identica** a quella del `.env` del bot. Le righe `set` vanno **sopra** `ensure literp_discord`, e `ensure literp_discord` va **dopo** `es_extended`.
 
-### Passo 4 — Configura la risorsa (`literp_discord/config.lua`)
+Indirizzo e chiave stanno nel `server.cfg`: il `config.lua` non va modificato.
+
+### Passo 4 — Configura la risorsa (`literp_discord/config.lua`, facoltativo)
+
+È già pronta per ESX. Cambia solo se serve:
 
 ```lua
-Config.BotUrl = 'http://127.0.0.1:3001'   -- vedi la tabella del passo 2
-Config.Framework = 'qbox'                  -- 'qbox', 'esx', 'qbcore' oppure 'ace'
-Config.StaffGroups = { 'helper', 'mod', 'admin', 'superadmin', 'god' }   -- i gruppi staff del tuo server
+Config.Framework = 'esx'                   -- 'esx', 'qbcore' oppure 'ace'
+Config.StaffGroups = { 'helper', 'mod', 'admin', 'superadmin', 'owner' }   -- i gruppi staff del tuo server
 ```
 
 **Come vengono riconosciuti gli staff online:**
 - **ESX**: i giocatori con un gruppo tra quelli in `Config.StaffGroups` (es. `admin`).
-- **QBCore** e **Qbox**: i giocatori con uno dei permessi in `Config.StaffGroups`.
+- **QBCore**: i giocatori con uno dei permessi in `Config.StaffGroups`.
 - **ACE**: aggiungi nel `server.cfg`:
 
 ```cfg
@@ -261,7 +266,7 @@ add_principal identifier.discord:ID_DISCORD_DELLO_STAFF group.admin
 
 In tutti i casi è sempre riconosciuto staff chi ha il permesso ACE `literp.staff`.
 
-**Profilo del sito (solo Qbox):** con `Config.SendCharacters = true` la risorsa invia al bot i personaggi di chi entra in città (nome, lavoro, gang, contanti, banca, telefono), all'ingresso, ogni `Config.CharacterInterval` secondi e all'uscita. Il bot conta anche le ore giocate (serve `Config.SendPlayerList = true`) e salva ban, avvertimenti e kick di txAdmin. Tutto viene collegato all'**ID Discord** del giocatore: lo vede solo lui nella pagina **/profilo** del sito. Nel `server.cfg` metti `ensure literp_discord` **dopo** `qbx_core`.
+**Profilo del sito (solo ESX):** con `Config.SendCharacters = true` la risorsa invia al bot i personaggi di chi entra in città (nome, data di nascita, lavoro, contanti, banca), all'ingresso, al cambio lavoro, ogni `Config.CharacterInterval` secondi e all'uscita. Il bot conta anche le ore giocate (serve `Config.SendPlayerList = true`) e salva ban, avvertimenti e kick di txAdmin. Tutto viene collegato all'**ID Discord** del giocatore: lo vede solo lui nella pagina **/profilo** del sito. Funziona con o senza `esx_multicharacter`.
 
 Nello stesso file puoi spegnere i singoli eventi di txAdmin (`Config.TxAdmin`) e attivare i log di entrata e uscita dei giocatori (`Config.LogConnections`, sconsigliato con tanti player).
 
@@ -273,6 +278,7 @@ Nello stesso file puoi spegnere i singoli eventi di txAdmin (`Config.TxAdmin`) e
    ensure literp_discord
    ```
    Oppure riavvia il server.
+   ➜ In console deve comparire **`[literp_discord] Collegato al bot`**. Se compare *Collegamento NON riuscito*, la riga dice il motivo (indirizzo, chiave o bot spento). Dopo aver corretto, riprova con il comando console `literp_check`.
 2. Sempre nella console di txAdmin:
    ```
    literp_testban
@@ -309,8 +315,8 @@ exports['literp_discord']:NotifyBan({
 | Problema | Causa e soluzione |
 |---|---|
 | Console FiveM: `Errore 401 inviando ... al bot` | La chiave nel `server.cfg` è diversa da quella del `.env`. Correggila e riavvia sia il bot sia la risorsa |
-| Console FiveM: `Errore 0 inviando ... al bot` | Il server FiveM non raggiunge il bot: bot spento, `BotUrl` sbagliato o porta 3001 chiusa (passo 2) |
-| Console FiveM: `ATTENZIONE: imposta "set literp_discord_secret"` | Manca la riga `set literp_discord_secret` nel `server.cfg`, oppure è **sotto** `ensure literp_discord` (deve stare sopra) |
+| Console FiveM: `Errore 0 inviando ... al bot` | Il server FiveM non raggiunge il bot: bot spento, `literp_discord_url` sbagliato o porta 3001 chiusa (passo 2) |
+| Console FiveM: `Manca la chiave: aggiungi set literp_discord_secret` | Manca la riga `set literp_discord_secret` nel `server.cfg`, oppure è **sotto** `ensure literp_discord` (deve stare sopra) |
 | `/stato` mostra i player ma "Staff online: N/D" | La risorsa non è collegata: ricontrolla i passi 1-5 |
 | Lo staff online risulta 0 anche se ci sono staff | `Config.Framework` o `Config.StaffGroups` non corrispondono ai gruppi del tuo server |
 | Nessun ban in #ban-fivem | Canale non impostato (`/impostazioni fivem canali ban:`) oppure risorsa non collegata (prova `literp_testban`) |

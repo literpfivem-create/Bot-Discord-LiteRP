@@ -345,6 +345,8 @@ async function handleEvent(client, data) {
 // ---------------------------------------------------------------- API HTTP (rotte della risorsa FiveM)
 
 function registerApi(client) {
+  // Prova di collegamento: la risorsa la chiama all'avvio e con il comando console literp_check
+  api.route('GET', '/api/ping', 'API_SECRET', () => ({ ok: true }));
   api.route('POST', '/api/stats', 'API_SECRET', ({ body: data }) => {
     pushed = {
       players: Number(data.players) || 0,
