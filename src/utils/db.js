@@ -154,6 +154,7 @@ state.site.guildId ??= null; // server Discord mostrato sul sito (/sito collega)
 state.site.goal ??= null; // obiettivo community: { target, label, channelId, reachedAt }
 state.site.staff ??= []; // gruppi della pagina Staff, in ordine: [{ roleId, name, description }] (/sito staff)
 state.site.newsChannels ??= []; // canali della pagina News: [{ channelId, kind: 'annuncio'|'aggiornamento' }] (/sito news)
+state.site.whitelistRoleId ??= null; // ruolo che vale come "whitelist" nel profilo del sito (/sito whitelist)
 // Archivio della pagina News: posts = messaggio id -> notizia, events = evento id -> evento Discord (anche passati)
 state.news ??= {};
 state.news.posts ??= {};

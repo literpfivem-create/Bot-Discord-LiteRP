@@ -17,6 +17,7 @@ const siteLive = require('./handlers/siteLive');
 const siteStaff = require('./handlers/siteStaff');
 const siteNews = require('./handlers/siteNews');
 const siteEvents = require('./handlers/siteEvents');
+const siteUser = require('./handlers/siteUser');
 
 if (!process.env.DISCORD_TOKEN) {
   console.error('❌ DISCORD_TOKEN mancante. Copia .env.example in .env e inserisci il token del bot.');
@@ -66,6 +67,7 @@ client.once(Events.ClientReady, async () => {
   siteStaff.start();
   siteNews.start(client);
   siteEvents.start();
+  siteUser.start();
   api.start();
   scheduler.start(client);
   serverStats.start(client).catch((e) => console.error('[Stats]', e));

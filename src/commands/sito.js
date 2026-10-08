@@ -1,4 +1,4 @@
-// /sito — collegamento tra il bot e il sito LiteRP: stato, server collegato, prova degli avvisi, obiettivo community, pagina Staff.
+// /sito — collegamento tra il bot e il sito LiteRP: stato, server collegato, prova degli avvisi, obiettivo community, pagina Staff, News, whitelist del profilo.
 const { ChannelType, EmbedBuilder, MessageFlags, PermissionFlagsBits: P, SlashCommandBuilder } = require('discord.js');
 const api = require('../api/server');
 const db = require('../utils/db');
@@ -21,6 +21,8 @@ module.exports = {
     .addSubcommand((s) => s.setName('stato').setDescription('Cosa è collegato al sito e cosa manca'))
     .addSubcommand((s) => s.setName('collega').setDescription('Mostra sul sito i dati di questo server Discord'))
     .addSubcommand((s) => s.setName('prova').setDescription('Invia un avviso di prova al sito per controllare il collegamento'))
+    .addSubcommand((s) => s.setName('whitelist').setDescription('Ruolo che nel profilo del sito vale come "whitelist"')
+      .addRoleOption((o) => o.setName('ruolo').setDescription('Ruolo whitelist (vuoto = nessuno: il profilo non mostra la whitelist)')))
     .addSubcommandGroup((g) => g.setName('obiettivo').setDescription('Barra "Siamo a 870 / 1000 membri" sul sito')
       .addSubcommand((s) => s.setName('imposta').setDescription('Imposta il traguardo dei membri Discord')
         .addIntegerOption((o) => o.setName('traguardo').setDescription('Numero da raggiungere, es. 1000').setRequired(true).setMinValue(1).setMaxValue(10_000_000))
@@ -54,6 +56,7 @@ module.exports = {
     if (group === 'obiettivo') return goal(interaction, sub);
     if (group === 'staff') return staff(interaction, sub);
     if (group === 'news') return news(interaction, sub);
+    if (sub === 'whitelist') return whitelist(interaction);
 
     if (sub === 'collega') {
       db.getSite().guildId = interaction.guild.id;
@@ -108,6 +111,27 @@ async function goal(interaction, sub) {
       ? `Obiettivo impostato a **${target.toLocaleString('it-IT')} ${label}**, ma siete già **${now}**: sul sito risulta raggiunto.`
       : `Sul sito: **Siamo a ${now} / ${target.toLocaleString('it-IT')} ${label}**.${channel ? `\nAl traguardo lo annuncio in ${channel}.` : ''}`,
   ));
+}
+
+async function whitelist(interaction) {
+  const reply = (embed) => interaction.reply({ embeds: [embed], flags: EPH });
+  const guild = site.siteGuild();
+  if (!guild) return reply(errorEmbed('Prima scegli il server da mostrare sul sito con `/sito collega`.'));
+  if (guild.id !== interaction.guild.id) return reply(errorEmbed(`Il sito mostra **${guild.name}**: usa questo comando lì, oppure \`/sito collega\` qui.`));
+
+  const role = interaction.options.getRole('ruolo');
+  if (role && (role.id === guild.id || role.managed)) return reply(errorEmbed('Scegli un ruolo normale (non @everyone né il ruolo di un bot).'));
+  db.getSite().whitelistRoleId = role?.id ?? null;
+  db.save();
+  return reply(successEmbed(role
+    ? `Nel profilo del sito chi ha ${role} risulta **in whitelist**.`
+    : 'Nessun ruolo whitelist: il profilo del sito non mostra più la whitelist.'));
+}
+
+function whitelistLine(guild) {
+  const id = db.getSite().whitelistRoleId;
+  const role = id && guild.roles.cache.get(id);
+  return role ? `${role}` : '*nessun ruolo* · `/sito whitelist`';
 }
 
 const MAX_GROUPS = 25;
@@ -300,6 +324,7 @@ function overview(guild) {
       { name: '👥 Pagina Staff', value: staffLine(), inline: true },
       { name: '📰 Pagina News', value: newsLine(), inline: true },
       { name: '💾 Dati', value: `\`${db.DATA_DIR}\`${dataOk ? '' : '\n⚠️ non persistenti'}`, inline: true },
+      { name: '✅ Whitelist (profilo)', value: linked ? whitelistLine(linked) : '*—*', inline: true },
       { name: '📥 Il sito legge dal bot', value: `${check(siteSecret)} Chiave \`SITE_API_SECRET\` • Porta **${api.port()}**\nUltima richiesta del sito: ${when(lastRequest)}` },
       { name: '📤 Il bot avvisa il sito', value: `${check(notifyReady)} ${site.siteUrl() ? `\`${site.siteUrl()}\`` : '`SITE_URL` non impostato'}\n${notifyLine}` },
     )
