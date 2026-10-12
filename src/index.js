@@ -19,6 +19,7 @@ const siteNews = require('./handlers/siteNews');
 const siteEvents = require('./handlers/siteEvents');
 const siteUser = require('./handlers/siteUser');
 const fivemPlayers = require('./handlers/fivemPlayers');
+const bandi = require('./handlers/bandi');
 
 if (!process.env.DISCORD_TOKEN) {
   console.error('❌ DISCORD_TOKEN mancante. Copia .env.example in .env e inserisci il token del bot.');
@@ -70,6 +71,7 @@ client.once(Events.ClientReady, async () => {
   siteEvents.start();
   siteUser.start();
   fivemPlayers.start();
+  bandi.start();
   api.start();
   scheduler.start(client);
   serverStats.start(client).catch((e) => console.error('[Stats]', e));

@@ -271,6 +271,14 @@ i membri da chi ha il ruolo. Chi ha più ruoli compare solo nel primo gruppo. Se
 
 Sul sito lo **staff in servizio** sono i membri di quei gruppi (o, se non ce ne sono, con un ruolo di `/impostazioni staff`) online su Discord: serve `PRESENCE_INTENT=true`.
 
+### 📋 `/bandi`
+`canale` (dove arrivano le candidature dalla pagina **Bandi Staff** del sito) `ruolo` (ruolo dato a chi viene accettato)
+`apri` `chiudi` (il sito accetta o no le candidature) `stato` (impostazioni e candidature in attesa)
+
+Ogni candidatura arriva nel canale con le risposte e i pulsanti **Accetta** (verde) e **Rifiuta** (rosso), usabili dallo staff
+(amministratori, ruoli di `/impostazioni staff` o chi può gestire i ruoli). L'esito arriva in DM al candidato; se accettato riceve il ruolo.
+Per candidarsi serve l'accesso con Discord sul sito ed essere nel server; una sola candidatura in attesa per persona.
+
 ## Personalizzazione
 
 - **Domande dei moduli ticket, emoji, colori, descrizioni**: `src/config/ticketCategories.js`

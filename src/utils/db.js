@@ -161,6 +161,13 @@ state.news.posts ??= {};
 state.news.events ??= {};
 // Giocatori FiveM per il profilo del sito: ID Discord -> { characters, lastCharacter, playtime, firstSeen, lastSeen, sanctions }
 state.fivemPlayers ??= {};
+// Bandi staff (/bandi e pagina /bandi-staff del sito): impostazioni e candidature (numero -> candidatura)
+state.bandi ??= {};
+state.bandi.open ??= true; // con /bandi chiudi il sito non accetta più candidature
+state.bandi.channelId ??= null; // dove arrivano le candidature (/bandi canale)
+state.bandi.roleId ??= null; // ruolo dato a chi viene accettato (/bandi ruolo)
+state.bandi.counter ??= 0;
+state.bandi.applications ??= {}; // { userId, answers, status: 'pending'|'accepted'|'rejected', channelId, messageId, createdAt, decidedBy, decidedAt }
 
 let timer = null;
 
@@ -259,6 +266,11 @@ function getNews() {
   return state.news;
 }
 
+/** Bandi staff: { open, channelId, roleId, counter, applications }. Live: modificalo e chiama save(). */
+function getBandi() {
+  return state.bandi;
+}
+
 // ---- Avvisi (warn) ----
 /** Mappa userId -> [warn] del server. Live: modificala e chiama save(). */
 function getWarns(guildId) {
@@ -268,7 +280,7 @@ function getWarns(guildId) {
 module.exports = {
   DATA_DIR,
   getGuild, peekGuild, save, saveNow,
-  getSite, getNews, getFivemPlayers,
+  getSite, getNews, getFivemPlayers, getBandi,
   getTicket, setTicket, deleteTicket, findTickets,
   getWarns,
 };
