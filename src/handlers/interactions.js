@@ -4,6 +4,7 @@ const ticketSetup = require('./ticketSetup');
 const messaggio = require('../commands/messaggio');
 const ruoli = require('../commands/ruoli');
 const bandi = require('./bandi');
+const candidature = require('./candidature');
 const { errorEmbed } = require('../utils/embeds');
 
 async function handleInteraction(client, interaction) {
@@ -25,6 +26,7 @@ async function handleInteraction(client, interaction) {
     if (id.startsWith('msg_embed:')) return await messaggio.handleModal(interaction);
     if (id.startsWith('selfrole:')) return await ruoli.handleButton(interaction);
     if (id.startsWith('bando:')) return await bandi.handleButton(interaction);
+    if (id.startsWith('cand:')) return await candidature.handle(interaction);
   } catch (err) {
     console.error(`[Interazione] Errore (${interaction.commandName ?? interaction.customId}):`, err);
     if (!interaction.isRepliable()) return;

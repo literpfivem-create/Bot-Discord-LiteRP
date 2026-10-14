@@ -49,6 +49,7 @@ module.exports = {
         { name: '🛡️ AutoMod', value: '`/automod stato|test|attiva|modulo|parola|dominio|ignora-canale|ignora-ruolo|impostazioni`' },
         { name: '🌐 Sito', value: '`/sito stato|collega|prova`\n`/sito obiettivo imposta|rimuovi`\n`/sito staff aggiungi|rimuovi|ordine|lista`\n`/sito news aggiungi|rimuovi|lista`' },
         { name: '📋 Bandi staff', value: '`/bandi canale|ruolo|apri|chiudi|stato`' },
+        { name: '📝 Candidature lavori', value: '`/candidature pannello|canale|ruolo|recruiter|apri|chiudi|stato`' },
       );
     }
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });

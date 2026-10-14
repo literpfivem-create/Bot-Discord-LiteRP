@@ -3,6 +3,7 @@
 // DATA_DIR nel .env sposta la cartella dati. Su Railway, senza DATA_DIR, si usa da solo il Volume collegato al servizio.
 const fs = require('fs');
 const path = require('path');
+const { JOBS } = require('../config/candidature');
 
 const VOLUME = process.env.RAILWAY_VOLUME_MOUNT_PATH ? path.resolve(process.env.RAILWAY_VOLUME_MOUNT_PATH) : null;
 const DATA_DIR = path.resolve(process.env.DATA_DIR || VOLUME || path.join(__dirname, '..', '..', 'data'));
@@ -127,6 +128,12 @@ function defaultGuild() {
       statusAlerts: true,
       botPresence: false,
       peak: { today: { value: 0, date: null }, allTime: { value: 0, date: null } },
+    },
+    // Candidature per i lavori (/candidature): impostazioni di ogni lavoro e candidature ricevute ('lspd-1' -> candidatura)
+    candidature: {
+      // panels: [{ channelId, messageId }] = messaggi con il pulsante "Candidati ora"
+      jobs: Object.fromEntries(JOBS.map((job) => [job.key, { open: true, channelId: null, roleId: null, recruiterRoleId: null, counter: 0, panels: [] }])),
+      applications: {}, // { job, number, userId, status: 'pending'|'accepted'|'rejected'|'deleted', channelId, messageId, createdAt, decidedBy, decidedAt }
     },
   };
 }

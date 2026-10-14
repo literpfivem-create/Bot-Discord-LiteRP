@@ -13,6 +13,7 @@ Bot Discord ufficiale del server FiveM **LiteRP**.
 | ✉️ **Messaggi** | Testi, embed, **annunci ufficiali**, **DM a nome dello staff**, modifica embed, **messaggi programmati/ricorrenti** |
 | 🔨 **Ban FiveM** | Annuncio automatico dei ban (txAdmin o altri sistemi), **revoche**, **DM al giocatore bannato** con istruzioni per il ricorso |
 | 📊 **Server stats** | Embed live con player/staff online, **record giornaliero e di sempre**, **avviso online/offline**, **avviso riavvii programmati**, **canali contatore e canali con testo libero** con `/serverstats`, `/giocatori` |
+| 📝 **Candidature lavori** | Pulsante **Candidati ora** per LSPD, LSSD, EMS, U.S. Marshal e FIB: modulo di domande in 3 pagine, candidatura nel canale dello staff con **Accetta / Rifiuta**, ruolo automatico ed esito in DM |
 
 ---
 
@@ -283,8 +284,26 @@ Ogni candidatura arriva nel canale con le risposte e i pulsanti **Accetta** (ver
 (amministratori, ruoli di `/impostazioni staff` o chi può gestire i ruoli). L'esito arriva in DM al candidato; se accettato riceve il ruolo.
 Per candidarsi serve l'accesso con Discord sul sito ed essere nel server; una sola candidatura in attesa per persona.
 
+### 📝 `/candidature` — lavori (LSPD, LSSD, EMS, U.S. Marshal, FIB)
+| Sottocomando | Descrizione |
+|---|---|
+| `pannello` | Invia il messaggio con il pulsante **📝 Candidati ora** (uno per lavoro, es. nel canale delle candidature di quel lavoro) |
+| `canale` | Canale dove arrivano le candidature con i pulsanti **Accetta** / **Rifiuta** (con "Tutti i lavori" uno solo per tutti) |
+| `ruolo` | Ruolo dato a chi viene accettato |
+| `recruiter` | Ruolo che può accettare o rifiutare, oltre allo staff (vuoto = solo lo staff) |
+| `apri` `chiudi` | Il pulsante funziona oppure diventa "Candidature chiuse" |
+| `stato` | Impostazioni dei lavori e candidature in attesa |
+
+Il pulsante apre un modulo di **3 pagine** con le domande del lavoro: tra una pagina e l'altra c'è **Continua**, perché Discord
+non permette più di 5 domande per modulo. Le risposte non ancora inviate restano salvate per 1 ora.
+La candidatura arriva nel canale divisa in OOC, Personaggio IC e Intervista. Con **Accetta** il candidato riceve il ruolo;
+in tutti e due i casi l'esito gli arriva in DM. Possono decidere lo staff (come per i bandi) e il ruolo di `recruiter`.
+Regole: almeno 16 anni, una sola candidatura in attesa per lavoro, chi ha già il ruolo del lavoro non può candidarsi.
+Se lo staff elimina il messaggio di una candidatura, quella decade e la persona può ricandidarsi.
+
 ## Personalizzazione
 
 - **Domande dei moduli ticket, emoji, colori, descrizioni**: `src/config/ticketCategories.js`
+- **Domande delle candidature lavori, scenari e lunghezza massima delle risposte**: `src/config/candidature.js`
 - **Testi e valori di default**: `src/utils/db.js` (`defaultGuild`)
 - **Dati salvati**: `data/database.json` e le immagini del sito in `data/media/` (o nella cartella `DATA_DIR`, o nel Volume su Railway). Fai un backup ogni tanto: si rimette con `/impostazioni ripristina`
