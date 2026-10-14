@@ -93,6 +93,10 @@ Opzioni utili:
 
 # Sanzioni automatiche: timeout 1h a 3 warn, kick a 5, ban a 7, i warn scadono dopo 30 giorni
 /impostazioni sanzioni timeout_a:3 durata_timeout:1h kick_a:5 ban_a:7 scadenza_avvisi_giorni:30
+
+# Impostazioni perse (es. bot spostato su Railway o deploy senza Volume): allega un database.json di prima.
+# Rimette solo quello che manca: canali, ruoli, contatori, parole vietate... Quello già impostato non cambia.
+/impostazioni ripristina file:database.json
 ```
 
 ### `/ticket configura` — tutto il sistema ticket in un'unica schermata
@@ -168,11 +172,11 @@ Variabili da impostare (file `.env` in locale, scheda **Variables** su Railway):
 | `SITE_API_SECRET` | Chiave con cui il sito legge dal bot. Sul sito va messa uguale in `BOT_API_SECRET`. |
 | `SITE_URL` | Indirizzo del sito senza `/` finale. Solo se il bot può raggiungere il sito: con il bot su Railway serve l'indirizzo pubblico (Vercel), `localhost` non funziona. Vuoto = il sito si aggiorna da solo ogni minuto. |
 | `REVALIDATE_SECRET` | Chiave con cui il bot dice al sito di aggiornarsi. Uguale sul sito. |
-| `DATA_DIR` | Cartella di database e immagini. Su Railway: il percorso del **Volume** (es. `/data`). |
+| `DATA_DIR` | Cartella di database e immagini. Su Railway non serve: il bot usa da solo il **Volume** collegato. Se la imposti, deve essere il percorso del Volume (es. `/data`). |
 | `PRESENCE_INTENT` | `true` per vedere chi è online. Prima attiva **PRESENCE INTENT** nel Developer Portal → Bot. |
 
 **Railway**
-1. **Volume**: nel progetto premi **Ctrl+K** (oppure clic destro su uno spazio vuoto della mappa del progetto) → **Volume** → scegli il servizio del bot → come *Mount path* scrivi `/data`. Poi nelle variabili del bot aggiungi `DATA_DIR=/data`. Senza Volume Railway cancella database e immagini a ogni deploy.
+1. **Volume**: nel progetto premi **Ctrl+K** (oppure clic destro su uno spazio vuoto della mappa del progetto) → **Volume** → scegli il servizio del bot → come *Mount path* scrivi `/data`. Il bot lo usa da solo. Senza Volume Railway cancella database e immagini a ogni deploy: `/impostazioni panoramica` e `/sito stato` lo segnalano con **Dati non permanenti**.
 2. **Settings → Networking → Generate Domain**: è l'indirizzo pubblico del bot (va in `BOT_API_URL` sul sito). Railway imposta da solo `PORT`.
 3. Su Discord: `/sito collega` nel server da mostrare, poi `/sito stato` e `/sito prova`.
 
@@ -283,4 +287,4 @@ Per candidarsi serve l'accesso con Discord sul sito ed essere nel server; una so
 
 - **Domande dei moduli ticket, emoji, colori, descrizioni**: `src/config/ticketCategories.js`
 - **Testi e valori di default**: `src/utils/db.js` (`defaultGuild`)
-- **Dati salvati**: `data/database.json` e le immagini del sito in `data/media/` (o nella cartella `DATA_DIR`). Fai un backup ogni tanto
+- **Dati salvati**: `data/database.json` e le immagini del sito in `data/media/` (o nella cartella `DATA_DIR`, o nel Volume su Railway). Fai un backup ogni tanto: si rimette con `/impostazioni ripristina`

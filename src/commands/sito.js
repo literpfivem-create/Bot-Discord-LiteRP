@@ -299,15 +299,14 @@ function overview(guild) {
   const { lastRequest, lastNotify } = site.status;
   const siteSecret = Boolean(api.secretOf('SITE_API_SECRET'));
   const notifyReady = Boolean(site.siteUrl() && api.secretOf('REVALIDATE_SECRET'));
-  const onRailway = Boolean(process.env.RAILWAY_ENVIRONMENT);
-  const dataOk = !onRailway || Boolean(process.env.DATA_DIR);
+  const dataOk = db.PERSISTENT;
 
   const todo = [];
   if (!linked) todo.push('`/sito collega` — scegli il server Discord da mostrare sul sito');
   if (!siteSecret) todo.push('Variabile `SITE_API_SECRET` sul bot (e la stessa come `BOT_API_SECRET` su Vercel)');
   if (!notifyReady) todo.push('Variabili `SITE_URL` e `REVALIDATE_SECRET` sul bot (aggiornamento immediato del sito)');
   if (!site.hasPresences()) todo.push('Presenze: attiva **PRESENCE INTENT** nel Developer Portal e metti `PRESENCE_INTENT=true` sul bot');
-  if (!dataOk) todo.push('**Railway senza Volume**: aggiungi un Volume e imposta `DATA_DIR` sul suo percorso, altrimenti i dati si perdono a ogni deploy');
+  if (!dataOk) todo.push('**Railway senza Volume**: collega un Volume al servizio del bot (se usi `DATA_DIR`, deve essere il percorso del Volume), altrimenti i dati si perdono a ogni deploy');
 
   const notifyLine = lastNotify
     ? `${lastNotify.ok ? '✅' : '❌'} Ultimo avviso ${when(lastNotify.at)} (${lastNotify.tags.join(', ')})${lastNotify.ok ? '' : ` — \`${lastNotify.error}\``}`

@@ -1,11 +1,18 @@
 // Database su file JSON (data/database.json). Nessuna dipendenza nativa da compilare.
 // I campi nuovi vengono aggiunti automaticamente alle configurazioni esistenti (fillDefaults).
-// DATA_DIR nel .env sposta la cartella dati (su Railway: il percorso del Volume, es. /data).
+// DATA_DIR nel .env sposta la cartella dati. Su Railway, senza DATA_DIR, si usa da solo il Volume collegato al servizio.
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, '..', '..', 'data');
+const VOLUME = process.env.RAILWAY_VOLUME_MOUNT_PATH ? path.resolve(process.env.RAILWAY_VOLUME_MOUNT_PATH) : null;
+const DATA_DIR = path.resolve(process.env.DATA_DIR || VOLUME || path.join(__dirname, '..', '..', 'data'));
 const FILE = path.join(DATA_DIR, 'database.json');
+const ON_RAILWAY = Boolean(process.env.RAILWAY_PROJECT_ID || process.env.RAILWAY_ENVIRONMENT);
+/** false = su Railway i dati stanno fuori da un Volume e vengono cancellati a ogni deploy. */
+const PERSISTENT = !ON_RAILWAY || Boolean(VOLUME && (DATA_DIR === VOLUME || DATA_DIR.startsWith(VOLUME + path.sep)));
+if (!PERSISTENT) {
+  console.warn(`⚠️  Dati NON permanenti (${DATA_DIR}): collega un Volume al bot su Railway, altrimenti a ogni deploy impostazioni e ticket vengono cancellati.`);
+}
 
 const DEFAULT_WELCOME =
   'Ciao {user}, benvenuto nella città di **LiteRP**!\n\n📜 Leggi il **regolamento** prima di entrare in città\n🎫 Hai bisogno di aiuto? Apri un **ticket**\n🎮 Buon roleplay!';
@@ -278,8 +285,8 @@ function getWarns(guildId) {
 }
 
 module.exports = {
-  DATA_DIR,
-  getGuild, peekGuild, save, saveNow,
+  DATA_DIR, PERSISTENT,
+  defaultGuild, getGuild, peekGuild, save, saveNow,
   getSite, getNews, getFivemPlayers, getBandi,
   getTicket, setTicket, deleteTicket, findTickets,
   getWarns,

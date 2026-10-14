@@ -2,6 +2,9 @@
 const { ChannelType, EmbedBuilder, MessageFlags, PermissionFlagsBits: P, SlashCommandBuilder } = require('discord.js');
 const db = require('../utils/db');
 const fivem = require('../handlers/fivem');
+const serverStats = require('../handlers/serverStats');
+const tickets = require('../handlers/tickets');
+const { restoreGuild } = require('../utils/restore');
 const { buildWelcome, buildWelcomeDm, buildGoodbye } = require('../handlers/welcome');
 const { COLORS, FOOTER, errorEmbed, successEmbed, isUrl, parseColor } = require('../utils/embeds');
 const { parseDuration, formatDuration } = require('../utils/time');
@@ -95,7 +98,10 @@ module.exports = {
       .addStringOption((o) => o.setName('durata_timeout').setDescription('Durata del timeout automatico (es. 1h, 1g)'))
       .addIntegerOption((o) => o.setName('kick_a').setDescription('Avvisi per l’espulsione automatica').setMinValue(0).setMaxValue(50))
       .addIntegerOption((o) => o.setName('ban_a').setDescription('Avvisi per il ban automatico').setMinValue(0).setMaxValue(50))
-      .addIntegerOption((o) => o.setName('scadenza_avvisi_giorni').setDescription('Dopo quanti giorni un avviso scade (0 = mai)').setMinValue(0).setMaxValue(365))),
+      .addIntegerOption((o) => o.setName('scadenza_avvisi_giorni').setDescription('Dopo quanti giorni un avviso scade (0 = mai)').setMinValue(0).setMaxValue(365)))
+
+    .addSubcommand((s) => s.setName('ripristina').setDescription('Rimette le impostazioni mancanti da un backup del bot (file database.json)')
+      .addAttachmentOption((o) => o.setName('file').setDescription('Il file database.json (sul PC: cartella "data" del bot)').setRequired(true))),
 
   async execute(interaction) {
     const { guild, options } = interaction;
@@ -111,6 +117,7 @@ module.exports = {
 
     if (!group && sub === 'panoramica') return interaction.reply({ embeds: [overview(guild, gcfg)], flags: EPH });
     if (!group && sub === 'sanzioni') return sanctions(interaction, gcfg, ok, fail);
+    if (!group && sub === 'ripristina') return restore(interaction, gcfg);
 
     // ------------------------------------------------------------ STAFF
     if (group === 'staff') {
@@ -294,6 +301,46 @@ function sanctions(interaction, gcfg, ok, fail) {
   );
 }
 
+const MAX_BACKUP_SIZE = 5 * 1024 * 1024;
+
+/** /impostazioni ripristina: unisce alla configurazione attuale quella di un database.json di prima (vedi utils/restore.js). */
+async function restore(interaction, gcfg) {
+  const { guild } = interaction;
+  const file = interaction.options.getAttachment('file', true);
+  if (!/\.json$/i.test(file.name) || file.size > MAX_BACKUP_SIZE) {
+    return interaction.reply({ embeds: [errorEmbed('Serve il file **database.json** del bot (massimo 5 MB).')], flags: EPH });
+  }
+  await interaction.deferReply({ flags: EPH });
+  let data;
+  try {
+    const res = await fetch(file.url, { signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = JSON.parse(await res.text());
+  } catch (err) {
+    return interaction.editReply({ embeds: [errorEmbed(`Non riesco a leggere il file: ${err.message}`)] });
+  }
+  const backup = data?.guilds?.[guild.id];
+  if (!backup || typeof backup !== 'object') {
+    return interaction.editReply({ embeds: [errorEmbed('Nel file non ci sono impostazioni di questo server Discord.')] });
+  }
+
+  const lines = restoreGuild(guild, gcfg, backup, db.defaultGuild());
+  if (!lines.length) return interaction.editReply({ embeds: [successEmbed('Niente da ripristinare: quello che c’è nel backup è già impostato.')] });
+  db.save();
+  serverStats.onChange(guild);
+  tickets.refreshPanels(interaction.client).catch((e) => console.error('[Ticket] Pannelli:', e.message));
+
+  const tips = [];
+  if (gcfg.autoroles.length) tips.push('Usa `/ruoli automatici sincronizza` per dare l’autorole a chi è entrato mentre mancava.');
+  if (!db.PERSISTENT) tips.push('⚠️ **Dati non permanenti**: senza un Volume su Railway il prossimo deploy cancella di nuovo tutto.');
+  const embed = new EmbedBuilder()
+    .setColor(COLORS.success)
+    .setTitle('♻️ Impostazioni ripristinate')
+    .setDescription(`${lines.join('\n')}\n\nQuello che avevi già impostato non è stato toccato. Controlla con \`/impostazioni panoramica\`.${tips.length ? `\n\n${tips.join('\n')}` : ''}`.slice(0, 4096))
+    .setFooter(FOOTER);
+  return interaction.editReply({ embeds: [embed] });
+}
+
 function overview(guild, gcfg) {
   const c = gcfg.channels;
   const ts = gcfg.ticketSettings;
@@ -310,7 +357,10 @@ function overview(guild, gcfg) {
   const embed = new EmbedBuilder()
     .setColor(todo.length ? COLORS.warning : COLORS.success)
     .setAuthor({ name: `${guild.name} • Configurazione bot`, iconURL: guild.iconURL() ?? undefined })
-    .setDescription(todo.length ? `**Da completare**\n${todo.map((t) => `• ${t}`).join('\n')}` : '✅ **Tutto configurato!**')
+    .setDescription(
+      (db.PERSISTENT ? '' : '⚠️ **Dati non permanenti**: collega un Volume al bot su Railway, altrimenti a ogni aggiornamento del bot queste impostazioni si cancellano.\n\n') +
+        (todo.length ? `**Da completare**\n${todo.map((t) => `• ${t}`).join('\n')}` : '✅ **Tutto configurato!**'),
+    )
     .addFields(
       { name: '🛡️ Staff', value: roleList(gcfg.staffRoles), inline: true },
       { name: '🎭 Autorole', value: `${roleList(gcfg.autoroles)}${gcfg.autorolesBots.length ? `\n🤖 ${roleList(gcfg.autorolesBots)}` : ''}`, inline: true },
