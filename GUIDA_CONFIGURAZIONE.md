@@ -164,9 +164,9 @@ Candidature per i lavori (LSPD, LSSD, EMS, U.S. Marshal, FIB) con il pulsante **
 
 ```
 /candidature canale lavoro:📋 Tutti i lavori canale:#candidature-ricevute   ← dove arrivano (canale visibile solo allo staff)
-/candidature ruolo lavoro:🚓 LSPD ruolo:@LSPD                               ← ruolo per chi viene accettato (ripeti per ogni lavoro)
-/candidature recruiter lavoro:🚓 LSPD ruolo:@Recruiter LSPD                 ← facoltativo: chi può accettare oltre allo staff
-/candidature pannello lavoro:🚓 LSPD canale:#candidature-lspd              ← messaggio con il pulsante (ripeti per ogni lavoro)
+/candidature ruolo lavoro:👮‍♂️ LSPD ruolo:@LSPD                               ← ruolo per chi viene accettato (ripeti per ogni lavoro)
+/candidature recruiter lavoro:👮‍♂️ LSPD ruolo:@Recruiter LSPD                 ← facoltativo: chi può accettare oltre allo staff
+/candidature pannello lavoro:👮‍♂️ LSPD canale:#candidature-lspd              ← messaggio con il pulsante (ripeti per ogni lavoro)
 ```
 
 ### ✅ 10. Controllo finale

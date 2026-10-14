@@ -20,6 +20,7 @@ const siteEvents = require('./handlers/siteEvents');
 const siteUser = require('./handlers/siteUser');
 const fivemPlayers = require('./handlers/fivemPlayers');
 const bandi = require('./handlers/bandi');
+const candidature = require('./handlers/candidature');
 
 if (!process.env.DISCORD_TOKEN) {
   console.error('❌ DISCORD_TOKEN mancante. Copia .env.example in .env e inserisci il token del bot.');
@@ -77,6 +78,7 @@ client.once(Events.ClientReady, async () => {
   serverStats.start(client).catch((e) => console.error('[Stats]', e));
   tickets.startInactivityChecker(client);
   tickets.refreshPanels(client).catch((e) => console.error('[Ticket] Pannelli:', e.message));
+  candidature.refreshAllPanels(client).catch((e) => console.error('[Candidature] Pannelli:', e.message));
 });
 
 client.on(Events.GuildCreate, (guild) => registerCommands(guild).catch((e) => console.error(e.message)));

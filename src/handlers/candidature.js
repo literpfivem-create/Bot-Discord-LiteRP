@@ -11,7 +11,7 @@ const {
   TextInputStyle, ThumbnailBuilder,
 } = require('discord.js');
 const db = require('../utils/db');
-const { SECTIONS, getJob, pagesOf, questionsOf } = require('../config/candidature');
+const { JOBS, SECTIONS, getJob, pagesOf, questionsOf } = require('../config/candidature');
 const { isStaff } = require('../utils/permissions');
 const { COLORS, FOOTER, errorEmbed } = require('../utils/embeds');
 const { unix } = require('../utils/time');
@@ -107,35 +107,50 @@ const separator = (big = false) => new SeparatorBuilder().setDivider(true).setSp
 const button = (id, label, emoji, style = ButtonStyle.Secondary) => new ButtonBuilder().setCustomId(id).setLabel(label).setEmoji(emoji).setStyle(style);
 const row = (...buttons) => new ActionRowBuilder().addComponents(buttons);
 
-/** Messaggio con il pulsante "Candidati ora" (disattivato se le candidature del lavoro sono chiuse). */
+/**
+ * Messaggio con il bando del lavoro (config/candidature.js) e il pulsante "Candidati ora".
+ * Con le candidature chiuse l'annuncio dell'apertura sparisce e il pulsante diventa "Candidature chiuse".
+ */
 function buildPanel(guild, key) {
   const job = getJob(key);
+  const { bando } = job;
   const open = isOpen(guild, key);
   const name = db.getGuild(guild.id).fivem.name || guild.name;
   const icon = guild.iconURL({ extension: 'png', size: 256 });
-  const intro = `## ${job.emoji} Candidature ${job.name}\n` + (open
-    ? `Le candidature per **${job.name}** sono aperte! Premi **Candidati ora** e rispondi alle domande: si apre un modulo di **${pagesOf(job).length} pagine**.`
-    : `🔒 Le candidature per **${job.name}** sono **chiuse** al momento. Riprova più avanti.`);
+  const title = `## ${job.emoji} ${bando.title}\n### ${open ? '📋 APERTURA BANDI DI RECLUTAMENTO' : '🔒 BANDI DI RECLUTAMENTO CHIUSI'}`;
+  const intro = open
+    ? bando.apertura
+    : `Al momento le candidature per **${job.name}** sono **chiuse**: quando riapriranno, il pulsante qui sotto tornerà attivo.`;
 
   const container = new ContainerBuilder().setAccentColor(job.color);
   if (icon) {
-    container.addSectionComponents(new SectionBuilder().addTextDisplayComponents(text(intro)).setThumbnailAccessory(new ThumbnailBuilder().setURL(icon)));
+    container.addSectionComponents(new SectionBuilder().addTextDisplayComponents(text(title)).setThumbnailAccessory(new ThumbnailBuilder().setURL(icon)));
   } else {
-    container.addTextDisplayComponents(text(intro));
+    container.addTextDisplayComponents(text(title));
   }
   container
+    .addTextDisplayComponents(text(`${intro}\n\n${bando.descrizione}`))
     .addSeparatorComponents(separator(true))
-    .addTextDisplayComponents(text(
-      '### ⚠️ Istruzioni\n' +
-        '> Rispondi a tutte le domande: quelle **IC** vanno scritte come il tuo personaggio\n' +
-        "> Attendi l'esito nei **DM** entro 3 giorni: tieni aperti i messaggi privati\n" +
-        '> Non sollecitare in pubblico',
-    ))
+    .addTextDisplayComponents(text(`### REQUISITI DI ACCESSO\n${bando.requisiti.map((r) => `- ${r}`).join('\n')}`))
     .addSeparatorComponents(separator())
+    .addTextDisplayComponents(text(`**Preparati a dimostrare di avere ciò che serve.**${bando.motto ? `\n*${bando.motto}*` : ''}`))
+    .addSeparatorComponents(separator(true));
+  if (open) {
+    container
+      .addTextDisplayComponents(text(
+        '### ⚠️ Istruzioni\n' +
+          `> Premi **Candidati ora**: si apre un modulo di **${pagesOf(job).length} pagine**\n` +
+          '> Rispondi a tutte le domande: quelle **IC** vanno scritte come il tuo personaggio\n' +
+          "> Attendi l'esito nei **DM** entro 3 giorni: tieni aperti i messaggi privati\n" +
+          '> Non sollecitare in pubblico',
+      ))
+      .addSeparatorComponents(separator());
+  }
+  container
     .addActionRowComponents(row(open
       ? button(`cand:apply:${key}`, 'Candidati ora', '📝', ButtonStyle.Success)
       : button(`cand:apply:${key}`, 'Candidature chiuse', '🔒').setDisabled(true)))
-    .addTextDisplayComponents(text(`-# 📋 ${name} · Un recruiter ti risponderà entro 72h`));
+    .addTextDisplayComponents(text(`-# 📋 ${name}${open ? ' · Un recruiter ti risponderà entro 72h' : ''}`));
 
   return { flags: MessageFlags.IsComponentsV2, components: [container], allowedMentions: { parse: [] } };
 }
@@ -166,6 +181,14 @@ async function refreshPanels(guild, key) {
   const settings = settingsOf(guild, key);
   settings.panels = settings.panels.filter((p) => !deleted.has(p.messageId));
   db.save();
+}
+
+/** All'avvio: aggiorna i pannelli già inviati, così prendono i testi dei bandi e i colori nuovi. */
+async function refreshAllPanels(client) {
+  for (const guild of client.guilds.cache.values()) {
+    if (!db.peekGuild(guild.id)) continue;
+    for (const job of JOBS) await refreshPanels(guild, job.key);
+  }
 }
 
 // ---------------------------------------------------------------- modulo
@@ -454,4 +477,4 @@ async function handle(interaction) {
   }
 }
 
-module.exports = { handle, buildPanel, postPanel, refreshPanels, reviewChannel, isOpen };
+module.exports = { handle, buildPanel, postPanel, refreshPanels, refreshAllPanels, reviewChannel, isOpen };

@@ -3,13 +3,28 @@
 // Limiti di Discord: label max 45 caratteri, description e placeholder max 100.
 // max = lunghezza massima della risposta: tutte insieme devono stare nel messaggio della candidatura (6000 caratteri).
 // section = dove compare la risposta nel messaggio della candidatura (vedi SECTIONS).
+// bando = testo del pannello con il pulsante "Candidati ora": apertura compare solo quando le candidature sono aperte.
 
 const JOBS = [
   {
     key: 'lspd',
     name: 'LSPD',
-    emoji: '🚓',
-    color: 0x1d4ed8,
+    emoji: '👮‍♂️',
+    color: 0x1d4ed8, // blu
+    bando: {
+      title: 'LOS SANTOS POLICE DEPARTMENT',
+      apertura: 'Il Los Santos Police Department comunica ufficialmente l’apertura dei bandi di reclutamento per l’ingresso nel Dipartimento.\nCerchiamo persone motivate, serie e realmente interessate a costruire un’esperienza di roleplay di qualità all’interno delle forze dell’ordine.',
+      descrizione: 'Entrare nella LSPD non significa solamente indossare una divisa: significa imparare procedure, lavorare in squadra, assumersi responsabilità e contribuire attivamente alla vita della città.',
+      requisiti: [
+        'Presentarsi con un abbigliamento consono in centrale',
+        'Non avere tatuaggi',
+        'Taglio capelli consono per un agente di polizia',
+        'Fedina penale pulita',
+        'Cittadinanza Americana',
+        'Non avere voce bianca',
+      ],
+      motto: 'Protect and Serve.',
+    },
     why: 'Perché vuoi entrare in LSPD?',
     scenario: 'Scopri che un tuo collega ha accettato una tangente. Cosa fa il tuo personaggio?',
     rules: 'governi e FDO',
@@ -18,8 +33,21 @@ const JOBS = [
   {
     key: 'lssd',
     name: 'LSSD',
-    emoji: '⭐',
-    color: 0x15803d,
+    emoji: '👮',
+    color: 0x38bdf8, // azzurro
+    bando: {
+      title: "LOS SANTOS SHERIFF'S DEPARTMENT",
+      apertura: "Il Los Santos Sheriff's Department comunica ufficialmente l’apertura dei bandi di reclutamento per l’ingresso nel Dipartimento.\nCerchiamo persone motivate, serie e realmente interessate a costruire un’esperienza di roleplay di qualità all’interno delle forze dell’ordine.",
+      descrizione: 'Entrare nella LSSD non significa solamente indossare una divisa: significa imparare procedure, lavorare in squadra, assumersi responsabilità e contribuire attivamente alla vita della contea.',
+      requisiti: [
+        'Presentarsi con un abbigliamento consono in stazione',
+        'Non avere tatuaggi',
+        'Taglio capelli consono per un deputy dello sceriffo',
+        'Fedina penale pulita',
+        'Cittadinanza Americana',
+        'Non avere voce bianca',
+      ],
+    },
     why: 'Perché vuoi entrare in LSSD?',
     scenario: 'Scopri che un tuo collega ha accettato una tangente. Cosa fa il tuo personaggio?',
     rules: 'governi e FDO',
@@ -29,7 +57,21 @@ const JOBS = [
     key: 'ems',
     name: 'EMS',
     emoji: '🚑',
-    color: 0xdc2626,
+    color: 0xdc2626, // rosso
+    bando: {
+      title: 'LOS SANTOS MEDICAL SERVICES',
+      apertura: 'Il Los Santos Medical Services comunica ufficialmente l’apertura dei bandi di reclutamento per l’ingresso nel Servizio.\nCerchiamo persone motivate, serie e realmente interessate a costruire un’esperienza di roleplay di qualità all’interno del servizio di emergenza sanitaria.',
+      descrizione: "Entrare nell'EMS non significa solamente indossare una divisa: significa imparare procedure di soccorso, lavorare in squadra, mantenere la calma sotto pressione e contribuire attivamente alla vita della città salvando vite.",
+      requisiti: [
+        'Presentarsi con un abbigliamento consono in ospedale',
+        'Non avere tatuaggi visibili',
+        'Taglio capelli consono per un paramedico',
+        'Fedina penale pulita',
+        'Cittadinanza Americana',
+        'Non avere voce bianca',
+      ],
+      motto: 'Save Lives.',
+    },
     why: 'Perché vuoi entrare in EMS?',
     scenario: 'Durante un intervento trovi due feriti gravi e sei da solo in attesa dei rinforzi. Come ti comporti e chi soccorri per primo?',
     rules: 'governi e servizi di emergenza',
@@ -43,8 +85,22 @@ const JOBS = [
   {
     key: 'usm',
     name: 'U.S. Marshal',
-    emoji: '🦅',
-    color: 0xb45309,
+    emoji: '🎖️',
+    color: 0xf97316, // arancione
+    bando: {
+      title: 'UNITED STATES MARSHALS SERVICE',
+      apertura: 'Lo United States Marshals Service comunica ufficialmente l’apertura dei bandi di reclutamento per l’ingresso nel Servizio.\nCerchiamo persone motivate, serie e realmente interessate a costruire un’esperienza di roleplay di qualità all’interno delle forze dell’ordine federali.',
+      descrizione: 'Entrare nei Marshals non significa solamente indossare un distintivo: significa imparare procedure federali, gestire latitanti e trasferimenti di detenuti, proteggere il tribunale, lavorare in squadra, assumersi responsabilità e contribuire attivamente alla giustizia dello Stato.',
+      requisiti: [
+        'Presentarsi con un abbigliamento consono (formale) in sede',
+        'Non avere tatuaggi',
+        'Taglio capelli consono per un agente federale',
+        'Fedina penale pulita',
+        'Cittadinanza Americana',
+        'Non avere voce bianca',
+      ],
+      motto: 'Justice. Integrity. Service.',
+    },
     why: 'Perché vuoi entrare negli U.S. Marshals?',
     scenario: 'Durante il trasferimento di un detenuto pericoloso, un tuo collega ti propone di chiudere un occhio in cambio di denaro. Cosa fa il tuo personaggio?',
     rules: 'governi e FDO',
@@ -58,8 +114,22 @@ const JOBS = [
   {
     key: 'fib',
     name: 'FIB',
-    emoji: '🕵️',
-    color: 0x475569,
+    emoji: '🚨',
+    color: 0xa67b5b, // marroncino
+    bando: {
+      title: 'FEDERAL INVESTIGATION BUREAU',
+      apertura: 'Il Federal Investigation Bureau comunica ufficialmente l’apertura dei bandi di reclutamento per l’ingresso nel Bureau.\nCerchiamo persone motivate, serie e realmente interessate a costruire un’esperienza di roleplay di qualità all’interno delle forze dell’ordine federali.',
+      descrizione: "Entrare nell'FIB non significa solamente indossare un distintivo: significa imparare tecniche investigative, condurre indagini complesse, lavorare in squadra, mantenere la riservatezza, assumersi responsabilità e contribuire attivamente alla sicurezza dello Stato.",
+      requisiti: [
+        'Presentarsi con un abbigliamento consono (formale) in sede',
+        'Non avere tatuaggi',
+        'Taglio capelli consono per un agente federale',
+        'Fedina penale pulita',
+        'Cittadinanza Americana',
+        'Non avere voce bianca',
+      ],
+      motto: 'Fidelity. Bravery. Integrity.',
+    },
     why: "Perché vuoi entrare nell'FIB?",
     scenario: "Durante un'indagine riservata scopri che un tuo collega passa informazioni a un'organizzazione criminale. Cosa fa il tuo personaggio?",
     rules: 'governi e FDO',
