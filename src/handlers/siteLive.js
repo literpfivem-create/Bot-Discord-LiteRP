@@ -30,19 +30,18 @@ function city(guild, gcfg) {
 }
 
 /**
- * Gruppo staff di un membro: i gruppi della pagina Staff (/sito staff) se ci sono,
- * altrimenti i ruoli di /impostazioni staff. rank più basso = più importante.
+ * Chi è staff: i gruppi della pagina Staff (/sito staff) se ci sono,
+ * altrimenti i ruoli di /impostazioni staff.
  */
-function staffGroupOf(member, staffRoles) {
-  if (siteStaff.groups().length) {
-    const group = siteStaff.groupOf(member);
-    return group && { role: group.role, name: group.name, rank: group.index };
-  }
-  const role = member.roles.cache.filter((r) => staffRoles.has(r.id)).sort((a, b) => b.position - a.position).first();
-  return role && { role, name: role.name, rank: -role.position };
+function isStaff(member, staffRoles) {
+  if (siteStaff.groups().length) return Boolean(siteStaff.groupOf(member));
+  return member.roles.cache.some((r) => staffRoles.has(r.id));
 }
 
-/** Staff online su Discord, ordinato per ruolo. null (riquadro nascosto) se mancano presenze o ruoli staff. */
+/**
+ * Staff online su Discord, ognuno col suo ruolo più alto (es. "Founder", non "Staff di LiteRP"),
+ * dal più importante. null (riquadro nascosto) se mancano presenze o ruoli staff.
+ */
 function staffOnDuty(guild, gcfg) {
   if (!site.hasPresences()) return null;
   const staffRoles = new Set(gcfg?.staffRoles ?? []);
@@ -51,22 +50,22 @@ function staffOnDuty(guild, gcfg) {
   const list = [];
   for (const member of guild.members.cache.values()) {
     const status = member.presence?.status;
-    if (member.user.bot || !ONLINE.has(status)) continue;
-    const group = staffGroupOf(member, staffRoles);
-    if (!group) continue;
+    if (member.user.bot || !ONLINE.has(status) || !isStaff(member, staffRoles)) continue;
+    const top = member.roles.highest;
     list.push({
       id: member.id,
       name: member.displayName,
       avatar: member.displayAvatarURL({ size: 128, extension: 'webp' }),
-      role: group.name,
-      color: group.role.color ? group.role.hexColor : null,
-      rank: group.rank,
+      role: top.name,
+      // ruolo più alto senza colore: il colore del nome su Discord
+      color: top.color ? top.hexColor : member.displayColor ? member.displayHexColor : null,
+      position: top.position,
       status,
     });
   }
   return list
-    .sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name, 'it'))
-    .map(({ rank, ...m }) => m);
+    .sort((a, b) => b.position - a.position || a.name.localeCompare(b.name, 'it'))
+    .map(({ position, ...m }) => m);
 }
 
 function goalInfo(guild) {
