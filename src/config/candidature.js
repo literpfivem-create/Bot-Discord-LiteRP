@@ -4,6 +4,7 @@
 // max = lunghezza massima della risposta: tutte insieme devono stare nel messaggio della candidatura (6000 caratteri).
 // section = dove compare la risposta nel messaggio della candidatura (vedi SECTIONS).
 // bando = testo del pannello con il pulsante "Candidati ora": apertura compare solo quando le candidature sono aperte.
+// options = domanda con menu a tendina invece del testo (la risposta salvata è l'opzione scelta).
 
 const JOBS = [
   {
@@ -140,6 +141,38 @@ const JOBS = [
       description: 'Senza fare powergaming o metagaming',
     },
   },
+  {
+    key: 'gov',
+    name: 'Governo',
+    emoji: '⚖️',
+    color: 0xd4af37, // oro
+    bando: {
+      title: 'GOVERNO DI LOS SANTOS',
+      apertura: 'Il Governo di Los Santos comunica ufficialmente l’apertura dei bandi di reclutamento per l’ingresso nel Sistema Giudiziario.\nCerchiamo persone motivate, serie e realmente interessate a costruire un’esperienza di roleplay di qualità all’interno delle istituzioni.',
+      descrizione: 'Entrare nel Governo non significa solamente indossare un abito elegante: significa conoscere le leggi, rispettare le procedure, garantire processi equi e contribuire attivamente alla giustizia della città.',
+      requisiti: [
+        'Presentarsi con un abbigliamento formale',
+        'Non avere tatuaggi visibili',
+        'Taglio capelli consono per un professionista del tribunale',
+        'Fedina penale pulita',
+        'Cittadinanza Americana',
+        'Non avere voce bianca',
+      ],
+      motto: 'Justice for All.',
+    },
+    // posizioni = ruoli tra cui scegliere (menu a tendina "Posizione richiesta" e elenco nel pannello)
+    posizioni: ['Giudice', 'Procuratore', 'Avvocato'],
+    why: 'Perché vuoi entrare nel Governo e in questa posizione?',
+    whyLabel: 'Perché il Governo e questa posizione?',
+    scenario: "Una persona molto influente ti offre denaro per influenzare l'esito di un caso. Cosa fa il tuo personaggio?",
+    rules: 'governi e FDO',
+    experience: 'Governo/tribunale',
+    extra: {
+      question: "Come gestiresti un'udienza o un processo senza fare powergaming o metagaming?",
+      label: "Come gestiresti un'udienza o un processo?",
+      description: 'Senza fare powergaming o metagaming',
+    },
+  },
 ];
 
 /** Titoli dei riquadri del messaggio della candidatura (come nel vecchio modulo da copiare). */
@@ -153,12 +186,21 @@ const getJob = (key) => JOBS.find((j) => j.key === key);
 
 /** Pagine del modulo: ogni elemento è una domanda ({ id, label, ... }) oppure un testo da leggere ({ text }). */
 function pagesOf(job) {
+  const fazioni = {
+    id: 'fazioni', section: 'pg', paragraph: true, max: 300,
+    label: 'Fazioni/lavori precedenti IC',
+    description: "Fazione · ruolo · motivo dell'uscita. Se non ne hai, scrivi «Nessuna»",
+    field: '🏢 Fazioni/lavori precedenti IC',
+  };
   return [
     {
       title: 'OOC e personaggio',
       items: [
         { id: 'eta', section: 'ooc', inline: true, label: 'Età anagrafica (min. 16)', field: '🎂 Età anagrafica', placeholder: 'Es. 18', max: 2 },
         { id: 'tempo', section: 'ooc', inline: true, label: 'Da quanto sei su LiteRP?', field: '⏳ Da quanto sei su LiteRP?', placeholder: 'Es. 2 mesi', max: 50 },
+        ...(job.posizioni
+          ? [{ id: 'posizione', section: 'pg', options: job.posizioni, label: 'Posizione richiesta', placeholder: 'Scegli la posizione', field: '🎯 Posizione richiesta', max: 50 }]
+          : []),
         {
           id: 'background', section: 'pg', paragraph: true, min: 200, max: 1000,
           label: 'Background del personaggio',
@@ -171,12 +213,8 @@ function pagesOf(job) {
           description: 'Scrivi «Pulita» oppure elenca i precedenti del tuo personaggio',
           field: '⚖️ Fedina penale IC',
         },
-        {
-          id: 'fazioni', section: 'pg', paragraph: true, max: 300,
-          label: 'Fazioni/lavori precedenti IC',
-          description: "Fazione · ruolo · motivo dell'uscita. Se non ne hai, scrivi «Nessuna»",
-          field: '🏢 Fazioni/lavori precedenti IC',
-        },
+        // con la posizione richiesta la pagina 1 avrebbe 6 domande: le fazioni passano alla pagina 3
+        ...(job.posizioni ? [] : [fazioni]),
       ],
     },
     {
@@ -184,7 +222,7 @@ function pagesOf(job) {
       items: [
         {
           id: 'motivazione', section: 'intervista', paragraph: true, min: 150, max: 600,
-          label: job.why,
+          label: job.whyLabel ?? job.why,
           description: 'Rispondi IC, cioè come il tuo personaggio: almeno 4 righe',
           field: `❓ ${job.why}`,
         },
@@ -212,6 +250,7 @@ function pagesOf(job) {
     {
       title: 'Ultime domande',
       items: [
+        ...(job.posizioni ? [fazioni] : []),
         {
           id: 'esperienza', section: 'intervista', paragraph: true, max: 200,
           label: `Esperienza RP ${job.experience}`,

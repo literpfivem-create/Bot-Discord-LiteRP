@@ -13,7 +13,7 @@ Bot Discord ufficiale del server FiveM **LiteRP**.
 | ✉️ **Messaggi** | Testi, embed, **annunci ufficiali**, **DM a nome dello staff**, modifica embed, **messaggi programmati/ricorrenti** |
 | 🔨 **Ban FiveM** | Annuncio automatico dei ban (txAdmin o altri sistemi), **revoche**, **DM al giocatore bannato** con istruzioni per il ricorso |
 | 📊 **Server stats** | Embed live con player/staff online, **record giornaliero e di sempre**, **avviso online/offline**, **avviso riavvii programmati**, **canali contatore e canali con testo libero** con `/serverstats`, `/giocatori` |
-| 📝 **Candidature lavori** | Bando di LSPD, LSSD, EMS, U.S. Marshal e FIB con il pulsante **Candidati ora**: modulo di domande in 3 pagine, candidatura nel canale dello staff con **Accetta / Rifiuta**, ruolo automatico ed esito in DM |
+| 📝 **Candidature lavori** | Bando di LSPD, LSSD, EMS, U.S. Marshal, FIB e Governo con il pulsante **Candidati ora**: modulo di domande in 3 pagine, candidatura nel canale dello staff con **Accetta / Rifiuta**, ruolo automatico ed esito in DM |
 
 ---
 
@@ -284,7 +284,7 @@ Ogni candidatura arriva nel canale con le risposte e i pulsanti **Accetta** (ver
 (amministratori, ruoli di `/impostazioni staff` o chi può gestire i ruoli). L'esito arriva in DM al candidato; se accettato riceve il ruolo.
 Per candidarsi serve l'accesso con Discord sul sito ed essere nel server; una sola candidatura in attesa per persona.
 
-### 📝 `/candidature` — lavori (LSPD, LSSD, EMS, U.S. Marshal, FIB)
+### 📝 `/candidature` — lavori (LSPD, LSSD, EMS, U.S. Marshal, FIB, Governo)
 | Sottocomando | Descrizione |
 |---|---|
 | `pannello` | Invia il bando del lavoro (presentazione, requisiti e motto) con il pulsante **📝 Candidati ora** (uno per lavoro, es. nel canale delle candidature di quel lavoro) |

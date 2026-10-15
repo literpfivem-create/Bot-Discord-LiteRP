@@ -1,4 +1,4 @@
-// Candidature per i lavori (LSPD, LSSD, EMS, U.S. Marshal, FIB), tutte su Discord.
+// Candidature per i lavori (LSPD, LSSD, EMS, U.S. Marshal, FIB, Governo), tutte su Discord.
 //  1. /candidature pannello invia il messaggio con il pulsante "Candidati ora"
 //  2. il pulsante apre il modulo con le domande, diviso in 3 pagine (Discord permette solo 5 domande per modulo).
 //     Tra una pagina e l'altra c'è il pulsante "Continua": Discord non apre un modulo subito dopo un altro.
@@ -7,8 +7,8 @@
 //  4. l'esito arriva in DM al candidato; se accettato riceve il ruolo del lavoro (/candidature ruolo)
 const {
   ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder, EmbedBuilder, LabelBuilder, MessageFlags, ModalBuilder,
-  PermissionFlagsBits: P, SectionBuilder, SeparatorBuilder, SeparatorSpacingSize, TextDisplayBuilder, TextInputBuilder,
-  TextInputStyle, ThumbnailBuilder,
+  PermissionFlagsBits: P, SectionBuilder, SeparatorBuilder, SeparatorSpacingSize, StringSelectMenuBuilder, StringSelectMenuOptionBuilder,
+  TextDisplayBuilder, TextInputBuilder, TextInputStyle, ThumbnailBuilder,
 } = require('discord.js');
 const db = require('../utils/db');
 const { JOBS, SECTIONS, getJob, pagesOf, questionsOf } = require('../config/candidature');
@@ -130,7 +130,13 @@ function buildPanel(guild, key) {
   }
   container
     .addTextDisplayComponents(text(`${intro}\n\n${bando.descrizione}`))
-    .addSeparatorComponents(separator(true))
+    .addSeparatorComponents(separator(true));
+  if (job.posizioni) {
+    container
+      .addTextDisplayComponents(text(`### POSIZIONI DISPONIBILI\n${job.posizioni.map((p) => `- ${p}`).join('\n')}`))
+      .addSeparatorComponents(separator());
+  }
+  container
     .addTextDisplayComponents(text(`### REQUISITI DI ACCESSO\n${bando.requisiti.map((r) => `- ${r}`).join('\n')}`))
     .addSeparatorComponents(separator())
     .addTextDisplayComponents(text(`**Preparati a dimostrare di avere ciò che serve.**${bando.motto ? `\n*${bando.motto}*` : ''}`))
@@ -199,6 +205,17 @@ function buildModal(job, page, answers) {
   for (const item of pages[page - 1].items) {
     if (item.text) {
       modal.addTextDisplayComponents(text(item.text));
+      continue;
+    }
+    if (item.options) {
+      const select = new StringSelectMenuBuilder()
+        .setCustomId(item.id)
+        .setRequired(item.required !== false)
+        .addOptions(item.options.map((o) => new StringSelectMenuOptionBuilder().setLabel(o).setValue(o).setDefault(answers[item.id] === o)));
+      if (item.placeholder) select.setPlaceholder(item.placeholder);
+      const label = new LabelBuilder().setLabel(item.label).setStringSelectMenuComponent(select);
+      if (item.description) label.setDescription(item.description);
+      modal.addLabelComponents(label);
       continue;
     }
     const input = new TextInputBuilder()
@@ -274,7 +291,10 @@ async function submitPage(interaction, job, page) {
   for (const item of pages[page - 1].items) {
     if (!item.id) continue;
     let value = '';
-    try { value = interaction.fields.getTextInputValue(item.id) ?? ''; } catch { /* campo assente nel modulo */ }
+    try {
+      value = (item.options ? interaction.fields.getStringSelectValues(item.id)[0] : interaction.fields.getTextInputValue(item.id)) ?? '';
+    } catch { /* campo assente nel modulo */ }
+    if (item.options && !item.options.includes(value)) value = '';
     session.answers[item.id] = value.slice(0, item.max); // salvata com'è scritta, così il modulo si riapre uguale
   }
   session.at = Date.now();

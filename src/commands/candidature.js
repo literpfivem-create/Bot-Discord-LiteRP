@@ -1,4 +1,4 @@
-// /candidature — candidature per i lavori (LSPD, LSSD, EMS, U.S. Marshal, FIB) direttamente su Discord:
+// /candidature — candidature per i lavori (LSPD, LSSD, EMS, U.S. Marshal, FIB, Governo) direttamente su Discord:
 // pannello con il pulsante "Candidati ora", canale dove arrivano, ruolo per chi viene accettato, recruiter, apertura e chiusura.
 const { ChannelType, EmbedBuilder, MessageFlags, PermissionFlagsBits: P, SlashCommandBuilder } = require('discord.js');
 const db = require('../utils/db');
@@ -15,7 +15,7 @@ const jobOption = (all) => (o) => o.setName('lavoro').setDescription('Lavoro').s
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('candidature')
-    .setDescription('Candidature per i lavori (LSPD, LSSD, EMS, U.S. Marshal, FIB) con il pulsante "Candidati ora"')
+    .setDescription('Candidature lavori (LSPD, LSSD, EMS, U.S. Marshal, FIB, Governo) con il pulsante "Candidati ora"')
     .setDefaultMemberPermissions(P.ManageGuild)
     .addSubcommand((s) => s.setName('pannello').setDescription('Invia il messaggio con il pulsante "Candidati ora"')
       .addStringOption(jobOption(false))

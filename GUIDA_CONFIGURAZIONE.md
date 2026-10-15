@@ -160,7 +160,7 @@ Già solo con l'IP il bot mostra quanti **player** sono online. Per vedere chi d
 /messaggio annuncio canale:#annunci menzione:@everyone
 ```
 
-Candidature per i lavori (LSPD, LSSD, EMS, U.S. Marshal, FIB) con il pulsante **Candidati ora**:
+Candidature per i lavori (LSPD, LSSD, EMS, U.S. Marshal, FIB, Governo) con il pulsante **Candidati ora**:
 
 ```
 /candidature canale lavoro:📋 Tutti i lavori canale:#candidature-ricevute   ← dove arrivano (canale visibile solo allo staff)
