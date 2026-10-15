@@ -132,8 +132,9 @@ function defaultGuild() {
     // Candidature per i lavori (/candidature): impostazioni di ogni lavoro e candidature ricevute ('lspd-1' -> candidatura)
     candidature: {
       // panels: [{ channelId, messageId }] = messaggi con il pulsante "Candidati ora"
-      jobs: Object.fromEntries(JOBS.map((job) => [job.key, { open: true, channelId: null, roleId: null, recruiterRoleId: null, counter: 0, panels: [] }])),
-      applications: {}, // { job, number, userId, status: 'pending'|'accepted'|'rejected'|'deleted', channelId, messageId, createdAt, decidedBy, decidedAt }
+      // positionRoles: { posizione: ruolo } = ruolo in più per la posizione scelta (es. Governo: Giudice, Procuratore, Avvocato)
+      jobs: Object.fromEntries(JOBS.map((job) => [job.key, { open: true, channelId: null, roleId: null, positionRoles: {}, recruiterRoleId: null, counter: 0, panels: [] }])),
+      applications: {}, // { job, number, userId, posizione, status: 'pending'|'accepted'|'rejected'|'deleted', channelId, messageId, createdAt, decidedBy, decidedAt }
     },
   };
 }

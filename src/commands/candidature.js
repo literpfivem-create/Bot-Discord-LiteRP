@@ -11,6 +11,8 @@ const ALL = 'tutti';
 const jobChoices = JOBS.map((j) => ({ name: `${j.emoji} ${j.name}`, value: j.key }));
 const jobOption = (all) => (o) => o.setName('lavoro').setDescription('Lavoro').setRequired(true)
   .addChoices(...jobChoices, ...(all ? [{ name: '📋 Tutti i lavori', value: ALL }] : []));
+// posizioni dei lavori che le hanno (es. Governo: Giudice, Procuratore, Avvocato)
+const positionChoices = JOBS.flatMap((j) => (j.posizioni ?? []).map((p) => ({ name: `${j.emoji} ${p}`, value: p })));
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -25,7 +27,9 @@ module.exports = {
       .addChannelOption((o) => o.setName('canale').setDescription('Canale (meglio uno visibile solo a staff e recruiter)').setRequired(true).addChannelTypes(ChannelType.GuildText)))
     .addSubcommand((s) => s.setName('ruolo').setDescription('Ruolo dato a chi viene accettato')
       .addStringOption(jobOption(false))
-      .addRoleOption((o) => o.setName('ruolo').setDescription('Ruolo, es. @LSPD').setRequired(true)))
+      .addRoleOption((o) => o.setName('ruolo').setDescription('Ruolo, es. @LSPD').setRequired(true))
+      .addStringOption((o) => o.setName('posizione').setDescription('Solo Governo: ruolo per chi sceglie questa posizione (vuoto = per tutti)')
+        .addChoices(...positionChoices)))
     .addSubcommand((s) => s.setName('recruiter').setDescription('Ruolo che può accettare o rifiutare le candidature, oltre allo staff')
       .addStringOption(jobOption(true))
       .addRoleOption((o) => o.setName('ruolo').setDescription('Ruolo dei recruiter (vuoto = solo lo staff)')))
@@ -62,7 +66,9 @@ module.exports = {
       const tips = [];
       if (!candidature.reviewChannel(guild, job.key)) tips.push('⚠️ Manca il canale dove arrivano le candidature: finché non lo imposti con `/candidature canale` il pulsante resta disattivato.');
       else if (!settings[job.key].open) tips.push('🔒 Le candidature sono chiuse: aprile con `/candidature apri`.');
-      if (!settings[job.key].roleId) tips.push('💡 Scegli il ruolo per chi viene accettato con `/candidature ruolo`.');
+      const missingRoles = (job.posizioni ?? []).filter((p) => !settings[job.key].positionRoles[p]);
+      if (missingRoles.length) tips.push(`💡 Scegli il ruolo di **${missingRoles.join(', ')}** con \`/candidature ruolo\` e l'opzione **posizione**.`);
+      else if (!job.posizioni && !settings[job.key].roleId) tips.push('💡 Scegli il ruolo per chi viene accettato con `/candidature ruolo`.');
       return interaction.editReply({ embeds: [successEmbed(`Pannello **${job.name}** inviato in ${channel}: ${message.url}${tips.length ? `\n\n${tips.join('\n')}` : ''}`)] });
     }
 
@@ -82,9 +88,17 @@ module.exports = {
       if (!role || role.id === guild.id || role.managed) return reply(errorEmbed('Scegli un ruolo normale (non @everyone né il ruolo di un bot).'));
       if (role.permissions.has(P.Administrator)) return reply(errorEmbed('Per sicurezza non posso dare in automatico un ruolo con il permesso **Amministratore**.'));
       if (!role.editable) return reply(errorEmbed(`Il bot non può assegnare ${role}: sposta il ruolo del bot sopra a questo ruolo nelle impostazioni del server.`));
+      const posizione = options.getString('posizione');
+      if (posizione) {
+        if (!job.posizioni?.includes(posizione)) return reply(errorEmbed(`**${job.name}** non ha posizioni: lascia vuota l'opzione **posizione**.`));
+        settings[job.key].positionRoles[posizione] = role.id;
+        db.save();
+        return reply(successEmbed(`Chi viene accettato in **${job.name}** come **${posizione}** riceverà ${role}.`), statusEmbed(guild));
+      }
       settings[job.key].roleId = role.id;
       db.save();
-      return reply(successEmbed(`Chi viene accettato in **${job.name}** riceverà ${role}.`), statusEmbed(guild));
+      const extra = job.posizioni ? `\n💡 Per dare un ruolo diverso a ${job.posizioni.join(', ')} usa l'opzione **posizione**.` : '';
+      return reply(successEmbed(`Chi viene accettato in **${job.name}** riceverà ${role}.${extra}`), statusEmbed(guild));
     }
 
     if (sub === 'recruiter') {
@@ -127,10 +141,16 @@ function statusEmbed(guild) {
     const recruiter = s.recruiterRoleId && guild.roles.cache.get(s.recruiterRoleId);
     const count = (status) => apps.filter((a) => a.job === job.key && a.status === status).length;
     const state = !channel ? '⚪ Da configurare' : s.open ? '🟢 Aperte' : '🔴 Chiuse';
+    const positions = (job.posizioni ?? [])
+      .map((p) => `${p}: ${(s.positionRoles[p] && guild.roles.cache.get(s.positionRoles[p])) ?? '*nessun ruolo*'}`)
+      .join(' · ');
+    const roles = job.posizioni
+      ? `${role ? `${role} (a tutti) · ` : ''}${positions}`
+      : role ?? '*nessun ruolo* · `/candidature ruolo`';
     embed.addFields({
       name: `${job.emoji} ${job.name} — ${state}`,
       value: `📥 ${channel ?? '*nessun canale* · `/candidature canale`'}\n` +
-        `🎭 ${role ?? '*nessun ruolo* · `/candidature ruolo`'} · 👥 Recruiter: ${recruiter ?? 'solo staff'}\n` +
+        `🎭 ${roles} · 👥 Recruiter: ${recruiter ?? 'solo staff'}\n` +
         `⏳ ${count('pending')} in attesa · ✅ ${count('accepted')} accettate · ❌ ${count('rejected')} rifiutate`,
     });
   }

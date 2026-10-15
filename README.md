@@ -289,7 +289,7 @@ Per candidarsi serve l'accesso con Discord sul sito ed essere nel server; una so
 |---|---|
 | `pannello` | Invia il bando del lavoro (presentazione, requisiti e motto) con il pulsante **📝 Candidati ora** (uno per lavoro, es. nel canale delle candidature di quel lavoro) |
 | `canale` | Canale dove arrivano le candidature con i pulsanti **Accetta** / **Rifiuta** (con "Tutti i lavori" uno solo per tutti) |
-| `ruolo` | Ruolo dato a chi viene accettato |
+| `ruolo` | Ruolo dato a chi viene accettato. Per il Governo, con l'opzione `posizione`, un ruolo diverso per Giudice, Procuratore e Avvocato (in base a cosa sceglie il candidato nel modulo) |
 | `recruiter` | Ruolo che può accettare o rifiutare, oltre allo staff (vuoto = solo lo staff) |
 | `apri` `chiudi` | Il pulsante funziona oppure diventa "Candidature chiuse" (e il bando dice che sono chiuse) |
 | `stato` | Impostazioni dei lavori e candidature in attesa |

@@ -25,7 +25,7 @@ const UNKNOWN = new Set([10007, 10013]); // Unknown Member, Unknown User
 const sessions = new Map(); // "server:utente:lavoro" -> { answers, at }: risposte non ancora inviate
 const sending = new Set(); // candidature in invio: un doppio click non le manda due volte
 
-/** Impostazioni del lavoro nel server: { open, channelId, roleId, recruiterRoleId, counter, panels }. Live: modificale e chiama save(). */
+/** Impostazioni del lavoro nel server: { open, channelId, roleId, positionRoles, recruiterRoleId, counter, panels }. Live: modificale e chiama save(). */
 const settingsOf = (guild, key) => db.getGuild(guild.id).candidature.jobs[key];
 
 /** Canale dove arrivano le candidature del lavoro, se impostato ed esistente. */
@@ -72,11 +72,19 @@ async function pendingOf(guild, userId, key, wait = 0) {
   return null;
 }
 
-/** Motivo per cui l'utente non può candidarsi al lavoro (null = può). */
-async function applyError(guild, member, job, wait) {
+/** Nome del lavoro con la posizione scelta, es. "Governo (Giudice)". */
+const jobLabel = (job, posizione) => (posizione ? `${job.name} (${posizione})` : job.name);
+
+/**
+ * Motivo per cui l'utente non può candidarsi al lavoro (null = può).
+ * posizione = quella scelta nel modulo (solo all'invio): chi ha già il suo ruolo non può ricandidarsi per la stessa.
+ */
+async function applyError(guild, member, job, wait, posizione) {
   if (!isOpen(guild, job.key)) return `Le candidature per **${job.name}** sono chiuse al momento.`;
-  const { roleId } = settingsOf(guild, job.key);
+  const { roleId, positionRoles } = settingsOf(guild, job.key);
   if (roleId && member.roles.cache.has(roleId)) return `Hai già il ruolo <@&${roleId}>: fai già parte di **${job.name}**.`;
+  const positionRole = posizione && positionRoles[posizione];
+  if (positionRole && member.roles.cache.has(positionRole)) return `Hai già il ruolo <@&${positionRole}>: sei già **${posizione}**.`;
   if (await pendingOf(guild, member.id, job.key, wait)) return `Hai già una candidatura **${job.name}** in attesa: riceverai l'esito in DM.`;
   return null;
 }
@@ -146,6 +154,7 @@ function buildPanel(guild, key) {
       .addTextDisplayComponents(text(
         '### ⚠️ Istruzioni\n' +
           `> Premi **Candidati ora**: si apre un modulo di **${pagesOf(job).length} pagine**\n` +
+          (job.posizioni ? `> Nella pagina 1 scegli la posizione (**${job.posizioni.join('**, **')}**): se accettato ricevi il suo ruolo\n` : '') +
           '> Rispondi a tutte le domande: quelle **IC** vanno scritte come il tuo personaggio\n' +
           "> Attendi l'esito nei **DM** entro 3 giorni: tieni aperti i messaggi privati\n" +
           '> Non sollecitare in pubblico',
@@ -329,7 +338,7 @@ function applicationEmbeds(job, number, app, member, answers) {
   const head = new EmbedBuilder()
     .setColor(job.color)
     .setAuthor({ name: member.displayName, iconURL: user.displayAvatarURL() })
-    .setTitle(`${job.emoji} Candidatura ${job.name} #${number}`)
+    .setTitle(`${job.emoji} Candidatura ${jobLabel(job, app.posizione)} #${number}`)
     .setThumbnail(user.displayAvatarURL({ size: 256 }))
     .setDescription(`Candidato: <@${app.userId}> · ID \`${app.userId}\`\n${joined}Inviata <t:${unix(app.createdAt)}:R>\n\n**${SECTIONS.ooc}**`)
     .addFields({ name: '🙍 Username Discord', value: user.username, inline: true }, ...fields('ooc'));
@@ -361,13 +370,14 @@ async function finish(interaction, job) {
   sending.add(key);
   try {
     const { guild, member } = interaction;
-    const error = await applyError(guild, member, job);
+    const posizione = session.answers.posizione || null;
+    const error = await applyError(guild, member, job, 0, posizione);
     if (error) return reply(errorMessage(error));
 
     const { candidature } = db.getGuild(guild.id);
     const number = ++candidature.jobs[job.key].counter;
     const id = `${job.key}-${number}`;
-    const app = { job: job.key, number, userId: member.id, status: 'pending', channelId: null, messageId: null, createdAt: Date.now(), decidedBy: null, decidedAt: null };
+    const app = { job: job.key, number, userId: member.id, posizione, status: 'pending', channelId: null, messageId: null, createdAt: Date.now(), decidedBy: null, decidedAt: null };
     candidature.applications[id] = app;
     db.save();
 
@@ -394,7 +404,7 @@ async function finish(interaction, job) {
     sessions.delete(key);
     const embed = new EmbedBuilder()
       .setColor(COLORS.success)
-      .setTitle(`✅ Candidatura ${job.name} inviata!`)
+      .setTitle(`✅ Candidatura ${jobLabel(job, posizione)} inviata!`)
       .setDescription("Un recruiter la valuterà entro **72 ore**: riceverai l'esito in **DM**, quindi tieni aperti i messaggi privati.\n\n⚠️ Non sollecitare in pubblico.");
     return reply({ embeds: [embed], components: [] });
   } finally {
@@ -411,32 +421,47 @@ function canDecide(member, key) {
   return isStaff(member, gcfg) || member.permissions.has(P.ManageRoles) || Boolean(recruiterRoleId && member.roles.cache.has(recruiterRoleId));
 }
 
-/** Dà il ruolo di /candidature ruolo. Restituisce il ruolo assegnato (o null) e la nota per il messaggio dello staff. */
-async function giveRole(guild, job, userId) {
-  const { roleId } = settingsOf(guild, job.key);
-  const fail = (note) => ({ role: null, note: `⚠️ ${note}` });
-  if (!roleId) return fail('Nessun ruolo da assegnare: impostalo con `/candidature ruolo`.');
-  const role = guild.roles.cache.get(roleId);
-  if (!role) return fail('Il ruolo impostato non esiste più: reimpostalo con `/candidature ruolo`.');
-  if (!role.editable) return fail(`Non posso assegnare ${role}: sposta il ruolo del bot più in alto.`);
-  const member = await findMember(guild, userId);
-  if (!member) return fail(`Ruolo ${role} non assegnato: il candidato non è più nel server.`);
-  await member.roles.add(role, `Candidatura ${job.name} accettata`);
-  return { role, note: `🎭 Ruolo ${role} assegnato.` };
+/**
+ * Dà i ruoli di /candidature ruolo: quello del lavoro e quello della posizione scelta (es. Governo → Giudice).
+ * Restituisce i ruoli davvero assegnati e le note per il messaggio dello staff.
+ */
+async function giveRoles(guild, job, app) {
+  const { roleId, positionRoles } = settingsOf(guild, job.key);
+  const wanted = [roleId, app.posizione && positionRoles[app.posizione]].filter(Boolean);
+  if (!wanted.length) {
+    return { roles: [], notes: [`⚠️ Nessun ruolo da assegnare: impostalo con \`/candidature ruolo\`${app.posizione ? ` (posizione ${app.posizione})` : ''}.`] };
+  }
+  const roles = [];
+  const notes = [];
+  for (const id of wanted) {
+    const role = guild.roles.cache.get(id);
+    if (!role) notes.push('⚠️ Un ruolo impostato non esiste più: reimpostalo con `/candidature ruolo`.');
+    else if (!role.editable) notes.push(`⚠️ Non posso assegnare ${role}: sposta il ruolo del bot più in alto.`);
+    else roles.push(role);
+  }
+  if (!roles.length) return { roles, notes };
+  const member = await findMember(guild, app.userId);
+  if (!member) return { roles: [], notes: [...notes, `⚠️ ${roles.join(', ')} non assegnato: il candidato non è più nel server.`] };
+  await member.roles.add(roles, `Candidatura ${jobLabel(job, app.posizione)} accettata`);
+  return { roles, notes: [`🎭 ${roles.length > 1 ? 'Ruoli' : 'Ruolo'} ${roles.join(', ')} ${roles.length > 1 ? 'assegnati' : 'assegnato'}.`, ...notes] };
 }
 
-/** DM con l'esito. role = ruolo davvero assegnato (solo se accettato). */
-async function sendOutcome(client, userId, accepted, guild, job, role) {
+/** DM con l'esito. roles = ruoli davvero assegnati (solo se accettato). */
+async function sendOutcome(client, app, accepted, guild, job, roles) {
+  const name = jobLabel(job, app.posizione);
+  const given = roles.length > 1
+    ? `\nTi sono stati dati i ruoli ${roles.map((r) => `**${r.name}**`).join(', ')}.`
+    : roles.length ? `\nTi è stato dato il ruolo **${roles[0].name}**.` : '';
   const embed = new EmbedBuilder()
     .setColor(accepted ? COLORS.success : COLORS.danger)
-    .setTitle(accepted ? `✅ Candidatura ${job.name} accettata!` : `❌ Candidatura ${job.name} non accettata`)
+    .setTitle(accepted ? `✅ Candidatura ${name} accettata!` : `❌ Candidatura ${name} non accettata`)
     .setDescription(accepted
-      ? `Complimenti! La tua candidatura **${job.name}** su **${guild.name}** è stata **accettata**.${role ? `\nTi è stato dato il ruolo **${role.name}**.` : ''}\n\nUn recruiter ti contatterà a breve per i prossimi passi. Benvenuto nel team!`
-      : `Ci dispiace, la tua candidatura **${job.name}** su **${guild.name}** **non è stata accettata**.\n\nGrazie per l'interesse: potrai ricandidarti più avanti.`)
+      ? `Complimenti! La tua candidatura **${name}** su **${guild.name}** è stata **accettata**.${given}\n\nUn recruiter ti contatterà a breve per i prossimi passi. Benvenuto nel team!`
+      : `Ci dispiace, la tua candidatura **${name}** su **${guild.name}** **non è stata accettata**.\n\nGrazie per l'interesse: potrai ricandidarti più avanti.`)
     .setFooter(FOOTER)
     .setTimestamp();
   try {
-    const user = await client.users.fetch(userId);
+    const user = await client.users.fetch(app.userId);
     await user.send({ embeds: [embed] });
     return '📩 Esito inviato in DM.';
   } catch {
@@ -460,17 +485,17 @@ async function decide(interaction, job, number, accepted) {
   await interaction.deferUpdate();
 
   const notes = [];
-  let role = null;
+  let roles = [];
   if (accepted) {
-    const given = await giveRole(interaction.guild, job, app.userId).catch((err) => ({ role: null, note: `⚠️ Ruolo non assegnato: ${err.message}` }));
-    role = given.role;
-    notes.push(given.note);
+    const given = await giveRoles(interaction.guild, job, app).catch((err) => ({ roles: [], notes: [`⚠️ Ruolo non assegnato: ${err.message}`] }));
+    roles = given.roles;
+    notes.push(...given.notes);
   }
-  notes.push(await sendOutcome(interaction.client, app.userId, accepted, interaction.guild, job, role));
+  notes.push(await sendOutcome(interaction.client, app, accepted, interaction.guild, job, roles));
 
   const color = accepted ? COLORS.success : COLORS.danger;
   const embeds = interaction.message.embeds.map((e) => EmbedBuilder.from(e).setColor(color));
-  if (!embeds.length) embeds.push(new EmbedBuilder().setColor(color).setTitle(`${job.emoji} Candidatura ${job.name} #${number}`));
+  if (!embeds.length) embeds.push(new EmbedBuilder().setColor(color).setTitle(`${job.emoji} Candidatura ${jobLabel(job, app.posizione)} #${number}`));
   embeds.at(-1).addFields({
     name: accepted ? '✅ Accettata' : '❌ Rifiutata',
     value: `Da ${interaction.user} <t:${unix(app.decidedAt)}:R>\n${notes.join('\n')}`,

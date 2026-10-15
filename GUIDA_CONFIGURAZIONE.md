@@ -165,6 +165,7 @@ Candidature per i lavori (LSPD, LSSD, EMS, U.S. Marshal, FIB, Governo) con il pu
 ```
 /candidature canale lavoro:📋 Tutti i lavori canale:#candidature-ricevute   ← dove arrivano (canale visibile solo allo staff)
 /candidature ruolo lavoro:👮‍♂️ LSPD ruolo:@LSPD                               ← ruolo per chi viene accettato (ripeti per ogni lavoro)
+/candidature ruolo lavoro:⚖️ Governo ruolo:@Giudice posizione:⚖️ Giudice       ← Governo: un ruolo per posizione (Giudice, Procuratore, Avvocato)
 /candidature recruiter lavoro:👮‍♂️ LSPD ruolo:@Recruiter LSPD                 ← facoltativo: chi può accettare oltre allo staff
 /candidature pannello lavoro:👮‍♂️ LSPD canale:#candidature-lspd              ← messaggio con il pulsante (ripeti per ogni lavoro)
 ```
