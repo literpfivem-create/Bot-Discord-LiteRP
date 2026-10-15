@@ -30,16 +30,16 @@ function city(guild, gcfg) {
 }
 
 /**
- * Chi è staff: i gruppi della pagina Staff (/sito staff) se ci sono,
+ * Ruolo staff di un membro (null = non è staff): i gruppi della pagina Staff (/sito staff) se ci sono,
  * altrimenti i ruoli di /impostazioni staff.
  */
-function isStaff(member, staffRoles) {
-  if (siteStaff.groups().length) return Boolean(siteStaff.groupOf(member));
-  return member.roles.cache.some((r) => staffRoles.has(r.id));
+function staffRoleOf(member, staffRoles) {
+  if (siteStaff.groups().length) return siteStaff.groupOf(member)?.role ?? null;
+  return member.roles.cache.filter((r) => staffRoles.has(r.id)).sort((a, b) => b.position - a.position).first() ?? null;
 }
 
 /**
- * Staff online su Discord, ognuno col suo ruolo più alto (es. "Founder", non "Staff di LiteRP"),
+ * Staff online su Discord, ognuno col suo ruolo più alto (es. "Owner", non "Staff di LiteRP"),
  * dal più importante. null (riquadro nascosto) se mancano presenze o ruoli staff.
  */
 function staffOnDuty(guild, gcfg) {
@@ -50,8 +50,11 @@ function staffOnDuty(guild, gcfg) {
   const list = [];
   for (const member of guild.members.cache.values()) {
     const status = member.presence?.status;
-    if (member.user.bot || !ONLINE.has(status) || !isStaff(member, staffRoles)) continue;
-    const top = member.roles.highest;
+    if (member.user.bot || !ONLINE.has(status)) continue;
+    const staffRole = staffRoleOf(member, staffRoles);
+    if (!staffRole) continue;
+    // senza altri ruoli oltre a quelli generici si mostra il ruolo staff
+    const top = siteStaff.visibleRoles(member)[0] ?? staffRole;
     list.push({
       id: member.id,
       name: member.displayName,
